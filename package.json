@@ -1,0 +1,52 @@
+{
+  "name": "yeying-tester",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "End-to-end Playwright + Chromium test suite for the YeYing community products (warehouse, node, router, chat, social, project, knowledge, marketplace, books, agent).",
+  "engines": {
+    "node": ">=24.18.0",
+    "pnpm": ">=9"
+  },
+  "scripts": {
+    "test": "playwright test",
+    "test:warehouse": "playwright test --project=warehouse",
+    "test:node": "playwright test --project=node",
+    "test:router": "playwright test --project=router",
+    "test:chat": "playwright test --project=chat",
+    "test:social": "playwright test --project=social",
+    "test:project": "playwright test --project=project",
+    "test:knowledge": "playwright test --project=knowledge",
+    "test:marketplace": "playwright test --project=marketplace",
+    "test:books": "playwright test --project=books",
+    "test:agent": "playwright test --project=agent",
+    "test:all": "playwright test",
+    "env:check": "tsx scripts/check-env.ts",
+    "env:list": "tsx scripts/list-projects.ts",
+    "browsers:install": "playwright install --with-deps chromium",
+    "browsers:list": "playwright install --dry-run chromium",
+    "list": "playwright test --list",
+    "report": "playwright show-report",
+    "lint": "eslint .",
+    "format": "prettier --write .",
+    "format:check": "prettier --check .",
+    "typecheck": "tsc -b",
+    "clean": "rimraf playwright-report test-results *.tsbuildinfo junit-*.xml"
+  },
+  "devDependencies": {
+    "@playwright/test": "^1.49.1",
+    "@types/node": "^22.10.5",
+    "@typescript-eslint/eslint-plugin": "^8.19.0",
+    "@typescript-eslint/parser": "^8.19.0",
+    "dotenv": "^16.4.7",
+    "eslint": "^9.17.0",
+    "eslint-plugin-playwright": "^2.2.0",
+    "ethers": "^6.17.0",
+    "prettier": "^3.4.2",
+    "rimraf": "^6.0.1",
+    "tsx": "^4.19.2",
+    "typescript": "^5.7.2",
+    "zod": "^3.24.1"
+  },
+  "packageManager": "pnpm@9.15.0"
+}

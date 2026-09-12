@@ -1,0 +1,54 @@
+/**
+ * social — Spring Boot actuator smoke (backend-only, frontend 8082 is down).
+ *
+ * The social backend (Java + Spring Boot) is reachable at 8888; the
+ * Vue 2 SPA that proxies it is on 8082 (down). Business endpoints return
+ * 500 from a stub controller, but the Spring Boot actuator endpoints
+ * confirm the service is healthy and the JVM is up.
+ *
+ * Requires:
+ *   - SOCIAL_BASE_URL (set to the Spring Boot backend, e.g. http://localhost:8888)
+ */
+import { test, expect, baseURLFor } from '../fixtures';
+import { apiContext, expectStatus } from '../../../shared/api';
+
+function skipIfNoService() {
+  test.skip(!baseURLFor('social'), 'SOCIAL_BASE_URL not configured');
+}
+
+test('actuator/health reports the service is UP', async () => {
+  skipIfNoService();
+  const baseURL = baseURLFor('social')!;
+  const ctx = await apiContext(baseURL);
+  try {
+    const res = await ctx.get('/actuator/health');
+    expect(res.status()).toBe(200);
+    const body = (await res.json()) as { status: string };
+    expect(body.status).toBe('UP');
+  } finally {
+    await ctx.dispose();
+  }
+});
+
+test('root URL responds (SPA index or backend redirect)', async () => {
+  skipIfNoService();
+  const ctx = await apiContext(baseURLFor('social')!);
+  try {
+    const res = await ctx.get('/');
+    expectStatus(res, (s) => s < 500);
+  } finally {
+    await ctx.dispose();
+  }
+});
+
+test('actuator/env is reachable (no auth required in dev)', async () => {
+  skipIfNoService();
+  const ctx = await apiContext(baseURLFor('social')!);
+  try {
+    const res = await ctx.get('/actuator/env');
+    // Dev-mode actuator endpoints are open; some prod configs gate them.
+    expectStatus(res, (s) => s < 500);
+  } finally {
+    await ctx.dispose();
+  }
+});

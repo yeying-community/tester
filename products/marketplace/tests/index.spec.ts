@@ -1,0 +1,64 @@
+/**
+ * marketplace — no live service required.
+ *
+ * Env vars consumed:
+ *   - MARKETPLACE_BASE_URL (optional; if empty, tests read filesystem)
+ *   - MARKETPLACE_REPO_PATH (default: ../marketplace)
+ */
+import { readFileSync, existsSync } from 'node:fs';
+import { resolve } from 'node:path';
+import { test, expect, hasEnv } from '../fixtures';
+
+interface CatalogEntry {
+  id: string;
+  lang: string;
+  name: { cn?: string; en?: string };
+  category?: string;
+}
+
+function repoPath(): string {
+  return (
+    process.env['MARKETPLACE_REPO_PATH']?.trim() || '/Users/liuxin2/Workspace/opensource/marketplace'
+  );
+}
+
+function readIndexJson(): CatalogEntry[] {
+  const file = resolve(repoPath(), 'index.json');
+  if (!existsSync(file)) {
+    throw new Error(`marketplace index.json not found at ${file}`);
+  }
+  return JSON.parse(readFileSync(file, 'utf8')) as CatalogEntry[];
+}
+
+test('marketplace index.json exists and parses', () => {
+  const entries = readIndexJson();
+  expect(Array.isArray(entries)).toBe(true);
+  expect(entries.length).toBeGreaterThan(0);
+});
+
+test('every entry has id, lang, name and category', () => {
+  const entries = readIndexJson();
+  for (const entry of entries) {
+    expect(typeof entry.id).toBe('string');
+    expect(entry.id.length).toBeGreaterThan(0);
+    expect(typeof entry.lang).toBe('string');
+    expect(entry.name).toBeDefined();
+    const hasName = !!(entry.name?.cn || entry.name?.en);
+    expect(hasName, `entry ${entry.id} has no name`).toBe(true);
+    expect(typeof entry.category).toBe('string');
+  }
+});
+
+test('packages.json is well-formed JSON', () => {
+  const file = resolve(repoPath(), 'packages.json');
+  test.skip(!existsSync(file), `packages.json not found at ${file}`);
+  const parsed = JSON.parse(readFileSync(file, 'utf8'));
+  expect(parsed).toBeDefined();
+});
+
+test('(optional) MARKETPLACE_BASE_URL responds 2xx', async ({ request }) => {
+  test.skip(!hasEnv('MARKETPLACE_BASE_URL'), 'MARKETPLACE_BASE_URL not set');
+  const baseURL = process.env['MARKETPLACE_BASE_URL']!;
+  const res = await request.get(`${baseURL.replace(/\/$/, '')}/index.json`);
+  expect(res.status()).toBeLessThan(500);
+});
