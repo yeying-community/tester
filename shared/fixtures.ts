@@ -1,6 +1,7 @@
 import { test as base, expect, type Page } from '@playwright/test';
 import { baseURLFor, envFor, hasEnv } from './env';
 import type { ProductName } from './types';
+import { Recorder } from './record';
 
 export interface ProductFixtures {
   /** The product this project is testing. Resolved from `process.env.PRODUCT_NAME`
@@ -12,14 +13,23 @@ export interface ProductFixtures {
   skipIfMissing: (envKey: string, reason?: string) => void;
   /** Convenience for `expect(baseURLFor(product)).toBeDefined()`. */
   requireBaseURL: () => string;
+  /**
+   * Opt-in recorder for user-manual generation. Specs that don't call
+   * `recorder.step(...)` produce no artifacts. Render with
+   * `pnpm manual:build`.
+   */
+  recorder: Recorder;
 }
 
 export const test = base.extend<ProductFixtures>({
   product: async ({}, use, testInfo) => {
-    // Prefer project name; tests may override via test.use({ product: ... })
-    const fromEnv = (testInfo.project.metadata?.products as ProductName | undefined) ?? undefined;
+    // The project's own name is the canonical product identifier.
+    // `metadata.products` (when set by root config) is the env snapshot
+    // — keyed by product name — not a single product; tests can read
+    // it via `loadEnv()` directly. Tests may override via
+    // `test.use({ product: ... })`.
     const fallback = testInfo.project.name as ProductName;
-    await use(fromEnv ?? fallback);
+    await use(fallback);
   },
   gotoHome: async ({ page, baseURL }, use) => {
     await use(async (path = '/') => {
@@ -42,6 +52,13 @@ export const test = base.extend<ProductFixtures>({
       }
       return url;
     });
+  },
+  recorder: async ({ product }, use, testInfo) => {
+    const r = new Recorder(product, testInfo.title);
+    await use(r);
+    // Flush steps.json on test completion (pass or fail). No-op when
+    // no `step()` calls were made.
+    await r.finalize(testInfo.file ?? '', testInfo.status === 'passed');
   },
 });
 

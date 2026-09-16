@@ -6,8 +6,8 @@ import { rm } from 'node:fs/promises';
 import { existsSync } from 'node:fs';
 
 const targets = [
-  'playwright-report',
-  'test-results',
+  'reports',
+  'results',
   'blob-report',
   '.tsbuildinfo',
 ];

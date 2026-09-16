@@ -39,12 +39,36 @@ const EXTRA_KEYS: Record<ProductName, string[]> = {
   node: ['NODE_API_URL', 'NODE_WALLET_PRIVATE_KEY', 'NODE_EXPECTED_ADDRESS'],
   router: ['ROUTER_WALLET_PRIVATE_KEY', 'ROUTER_EXPECTED_ADDRESS'],
   chat: ['OPENAI_API_KEY', 'ANTHROPIC_API_KEY'],
-  social: ['SOCIAL_USER', 'SOCIAL_PASS'],
+  social: [
+    'SOCIAL_USER',
+    'SOCIAL_PASS',
+    /**
+     * URL of the Vue 3 SPA that fronts the social backend. Defaults to
+     * 8082 in the standard dev layout. `SOCIAL_BASE_URL` points to the
+     * Spring Boot backend (8888) for actuator / API tests; SPA tests
+     * need `SOCIAL_WEB_URL` instead.
+     */
+    'SOCIAL_WEB_URL',
+    /**
+     * URL of the web3-identity SIWE service (8901). Its SIWE endpoints
+     * (`/auth/siwe/nonce`, `/auth/siwe/verify`) are only reachable there
+     * directly — the platform gateway on 8888 returns 500 for them.
+     */
+    'SOCIAL_IDENTITY_URL',
+  ],
   project: ['APP_DEV_PORT', 'PROJECT_USER', 'PROJECT_PASS'],
   knowledge: ['KNOWLEDGE_API_URL'],
   marketplace: ['MARKETPLACE_BASE_URL', 'MARKETPLACE_REPO_PATH'],
   books: ['BOOKS_BASE_URL', 'BOOKS_REPO_PATH'],
   agent: ['AGENT_API_URL', 'AGENT_PRIVATE_KEY'],
+  /**
+   * Wallet is a Chromium MV3 extension, not a web app — it has no
+   * `_BASE_URL`. Instead, specs need the path to the extension's source
+   * directory (containing manifest.json + inject.js + …). Prefer
+   * `WALLET_EXTENSION_PATH` if set; otherwise fall back to
+   * `WALLET_REPO_PATH` so the convention matches marketplace/books.
+   */
+  wallet: ['WALLET_EXTENSION_PATH', 'WALLET_REPO_PATH'],
 };
 
 /** Return the base URL for a product, or undefined if not configured. */

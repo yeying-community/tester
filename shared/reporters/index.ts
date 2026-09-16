@@ -5,7 +5,7 @@ const summaryReporterPath = new URL('./summary.ts', import.meta.url).pathname;
 export function defaultReporters(): ReporterDescription[] {
   return [
     ['list'],
-    ['html', { open: 'never', outputFolder: 'playwright-report' }],
+    ['html', { open: 'never', outputFolder: 'reports' }],
     ['junit', { outputFile: 'junit.xml' }],
     [summaryReporterPath],
   ];

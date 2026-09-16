@@ -56,16 +56,19 @@ test('wallet button click drives the SDK identity flow and surfaces a clean erro
 
   // Capture the SDK's identity-presentation network calls so we can
   // assert the SDK actually used our shim (not just rendered a button).
+  // Timeout is generous — the warehouse SDK issues a few round-trips
+  // before the session POST (e.g. challenge/nonce bootstrap) and the
+  // dev server cold-warm under parallel load can take a while.
   const sessionSeen = page.waitForResponse(
     (r) =>
       r.url().endsWith('/api/v1/public/auth/identity/login/session') &&
       r.request().method() === 'POST',
-    { timeout: 10_000 },
+    { timeout: 20_000 },
   );
 
   await page.goto(baseURL!, { waitUntil: 'networkidle' });
   const walletButton = page.getByRole('button', { name: '钱包登录' });
-  await expect(walletButton).toBeVisible({ timeout: 10_000 });
+  await expect(walletButton).toBeVisible({ timeout: 15_000 });
 
   // Click + assert the session call was made.
   await walletButton.click();
@@ -76,7 +79,7 @@ test('wallet button click drives the SDK identity flow and surfaces a clean erro
   // UCAN. Our shim returns a stub permission object, so the server
   // rejects it as IDENTITY_PRESENTATION_INVALID. The UI should surface
   // that as a clean Element Plus dialog — not a JS crash or blank page.
-  await expect(page.getByRole('dialog', { name: '错误' })).toBeVisible({ timeout: 10_000 });
+  await expect(page.getByRole('dialog', { name: '错误' })).toBeVisible({ timeout: 15_000 });
   await expect(page.getByText(/IDENTITY_PRESENTATION_INVALID|钱包登录失败/)).toBeVisible();
 
   // We never navigated away from the landing page.

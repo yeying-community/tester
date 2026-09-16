@@ -54,6 +54,15 @@ function resolveTarget(product: ProductName): { url: string | undefined; fsPath?
       fsPath: process.env['BOOKS_REPO_PATH'] ?? readEnvFile('.env', 'BOOKS_REPO_PATH'),
     };
   }
+  if (product === 'wallet') {
+    // Wallet is a Chromium MV3 extension; check the directory + manifest.json.
+    const path =
+      process.env['WALLET_EXTENSION_PATH'] ??
+      process.env['WALLET_REPO_PATH'] ??
+      readEnvFile('.env', 'WALLET_REPO_PATH') ??
+      readEnvFile('.env', 'WALLET_EXTENSION_PATH');
+    return { url: undefined, fsPath: path };
+  }
   return { url: undefined };
 }
 
@@ -61,11 +70,22 @@ async function buildRow(product: ProductName): Promise<Row> {
   const target = resolveTarget(product);
   if (target.fsPath) {
     try {
-      const { existsSync } = await import('node:fs');
-      if (existsSync(target.fsPath)) {
-        return { product, url: target.fsPath, status: 'ok', detail: 'path exists' };
+      const { existsSync, statSync } = await import('node:fs');
+      const { join } = await import('node:path');
+      if (!existsSync(target.fsPath)) {
+        return { product, url: target.fsPath, status: 'down', detail: 'path missing' };
       }
-      return { product, url: target.fsPath, status: 'down', detail: 'path missing' };
+      // For wallet, additionally verify the manifest is present — a directory
+      // without manifest.json cannot be loaded as an MV3 extension.
+      if (product === 'wallet') {
+        const manifestPath = join(target.fsPath, 'manifest.json');
+        if (!existsSync(manifestPath)) {
+          return { product, url: target.fsPath, status: 'down', detail: 'manifest.json missing' };
+        }
+        const stat = statSync(manifestPath);
+        return { product, url: target.fsPath, status: 'ok', detail: `manifest.json (${stat.size}B)` };
+      }
+      return { product, url: target.fsPath, status: 'ok', detail: 'path exists' };
     } catch (err) {
       return {
         product,

@@ -17,7 +17,7 @@ const HEADED = process.env.PWHEADLESS === '0';
 export default defineConfig({
   testDir: __dirname + '/tests',
   testMatch: /.*\.spec\.ts$/,
-  outputDir: 'test-results/social',
+  outputDir: 'results/social',
   timeout: 30_000,
   expect: { timeout: 5_000 },
   fullyParallel: true,

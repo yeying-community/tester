@@ -5,7 +5,7 @@
  * smoke checks (login form, post-login nav) are skipped with clear reasons
  * until that port comes up.
  */
-import { test, baseURLFor, hasEnv } from '../fixtures';
+import { test, expect, baseURLFor, hasEnv } from '../fixtures';
 
 test('social frontend smoke — skipped because 8082 is down', () => {
   test.skip(!baseURLFor('social'), 'SOCIAL_BASE_URL not configured');

@@ -8,7 +8,8 @@ export type ProductName =
   | 'knowledge'
   | 'marketplace'
   | 'books'
-  | 'agent';
+  | 'agent'
+  | 'wallet';
 
 export const PRODUCT_NAMES: readonly ProductName[] = [
   'warehouse',
@@ -21,6 +22,7 @@ export const PRODUCT_NAMES: readonly ProductName[] = [
   'marketplace',
   'books',
   'agent',
+  'wallet',
 ] as const;
 
 /** Per-product baseURL env-var key. */

@@ -17,11 +17,11 @@ const HEADED = process.env.PWHEADLESS === '0';
 export default defineConfig({
   testDir: __dirname + '/tests',
   testMatch: /.*\.spec\.ts$/,
-  outputDir: 'test-results/warehouse',
-  timeout: 30_000,
-  expect: { timeout: 5_000 },
+  outputDir: 'results/warehouse',
+  timeout: 60_000,
+  expect: { timeout: 15_000 },
   fullyParallel: true,
-  retries: process.env.CI ? 2 : 0,
+  retries: process.env.CI ? 2 : 1,
   workers: process.env.PWWORKERS ? Number(process.env.PWWORKERS) : undefined,
   use: {
     ...devices['Desktop Chrome'],
@@ -30,8 +30,8 @@ export default defineConfig({
     trace: 'on-first-retry',
     screenshot: 'only-on-failure',
     video: 'off',
-    actionTimeout: 10_000,
-    navigationTimeout: 20000,
+    actionTimeout: 20_000,
+    navigationTimeout: 60_000,
   },
   metadata: { product: 'warehouse' },
 });

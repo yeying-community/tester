@@ -27,45 +27,61 @@ export async function loginWithWallet(
 
   const ctx = await request.newContext({ baseURL });
   try {
-    const cRes = await ctx.post('/api/v1/public/common/auth/challenge', {
-      data: { address },
-    });
-    if (cRes.status() !== 200) {
-      throw new Error(`challenge failed: ${cRes.status()} ${await cRes.text()}`);
-    }
-    const cBody = (await cRes.json()) as {
-      data: { message: string; nonce: string };
-    };
-    const signature = await wallet.signMessage(cBody.data.message);
-
-    const vRes = await ctx.post('/api/v1/public/common/auth/verify', {
-      data: {
-        address,
-        signature,
-        nonce: cBody.data.nonce,
-        message: cBody.data.message,
-      },
-    });
-    const vText = await vRes.text();
-    if (vRes.status() !== 200) {
-      throw new Error(`verify failed: ${vRes.status()} ${vText}`);
-    }
-    const vBody = JSON.parse(vText) as {
-      data: {
-        token: string;
-        user: { id: string };
-        expires_at: string;
+    // The router nonce store keeps exactly one nonce per address (GetWalletNonce),
+    // so when several tests log in concurrently with the same wallet a parallel
+    // challenge can clobber this attempt's nonce before verify consumes it,
+    // yielding "nonce 无效或已过期". Retry the whole challenge→sign→verify a few
+    // times with jitter to ride out that documented single-slot race.
+    let lastErr = '';
+    for (let attempt = 0; attempt < 6; attempt++) {
+      const cRes = await ctx.post('/api/v1/public/common/auth/challenge', {
+        data: { address },
+      });
+      if (cRes.status() !== 200) {
+        throw new Error(`challenge failed: ${cRes.status()} ${await cRes.text()}`);
+      }
+      const cBody = (await cRes.json()) as {
+        data: { message: string; nonce: string };
       };
-    };
-    if (!vBody.data) {
-      throw new Error(`verify returned null data: ${vText}`);
+      const signature = await wallet.signMessage(cBody.data.message);
+
+      const vRes = await ctx.post('/api/v1/public/common/auth/verify', {
+        data: {
+          address,
+          signature,
+          nonce: cBody.data.nonce,
+          message: cBody.data.message,
+        },
+      });
+      const vText = await vRes.text();
+      if (vRes.status() !== 200) {
+        throw new Error(`verify failed: ${vRes.status()} ${vText}`);
+      }
+      const vBody = JSON.parse(vText) as {
+        success?: boolean;
+        message?: string;
+        data: {
+          token: string;
+          user: { id: string };
+          expires_at: string;
+        } | null;
+      };
+      if (vBody.data) {
+        return {
+          token: vBody.data.token,
+          userId: vBody.data.user.id,
+          address,
+          expiresAt: Math.floor(new Date(vBody.data.expires_at).getTime() / 1000),
+        };
+      }
+      lastErr = vText;
+      // Only the nonce race is transient; anything else is a hard failure.
+      if (!(vBody.message ?? '').includes('nonce')) {
+        throw new Error(`verify returned null data: ${vText}`);
+      }
+      await new Promise(r => setTimeout(r, 50 + Math.floor(Math.random() * 150)));
     }
-    return {
-      token: vBody.data.token,
-      userId: vBody.data.user.id,
-      address,
-      expiresAt: Math.floor(new Date(vBody.data.expires_at).getTime() / 1000),
-    };
+    throw new Error(`verify kept failing on nonce race: ${lastErr}`);
   } finally {
     await ctx.dispose();
   }

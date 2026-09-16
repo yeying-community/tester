@@ -11,6 +11,11 @@ import { test, expect, baseURLFor, hasEnv } from '../fixtures';
 test('login page renders', async ({ page }) => {
   test.skip(!baseURLFor('project'), 'PROJECT_BASE_URL not configured');
   await page.goto('/');
+  // Wait for the login view to mount (the "邮箱密码登录" toggle is a concrete
+  // element of it) before reading text — bare `load` fires on the empty shell.
+  await page
+    .getByRole('button', { name: /邮箱密码登录/ })
+    .waitFor({ state: 'visible', timeout: 15_000 });
   const body = await page.locator('body').innerText();
   expect(body.length).toBeGreaterThan(0);
 });
@@ -18,6 +23,12 @@ test('login page renders', async ({ page }) => {
 test('login page exposes a username field', async ({ page }) => {
   test.skip(!baseURLFor('project'), 'PROJECT_BASE_URL not configured');
   await page.goto('/');
+  // DooTask now serves the shared IM SPA: `/` redirects to `/#/login`, which
+  // defaults to wallet login. The email/password inputs are revealed only
+  // after clicking the "邮箱密码登录" toggle.
+  const emailPasswordToggle = page.getByRole('button', { name: /邮箱密码登录/ });
+  await emailPasswordToggle.waitFor({ state: 'visible', timeout: 15_000 });
+  await emailPasswordToggle.click();
   const candidates = page.locator(
     'input[type="text"], input[type="email"], input[name="email" i], input[name="account" i]',
   );

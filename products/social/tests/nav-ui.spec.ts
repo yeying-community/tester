@@ -1,0 +1,163 @@
+/**
+ * social — SPA navigation, settings, logout + auth-guard redirect (8082).
+ *
+ * Drives the real Vue 3 SPA. Authenticated cases seed a real SIWE-issued JWT
+ * into sessionStorage (see helpers/session) and land on `#/home/...`; the
+ * login-page cases run unauthenticated.
+ *
+ * Selectors come from social/web/src/view/{Home,Login}.vue and
+ * components/setting/Setting.vue.
+ *
+ * Env:
+ *  - SOCIAL_WEB_URL       Vue 3 SPA (8082)
+ *  - SOCIAL_BASE_URL      platform backend (8888)
+ *  - SOCIAL_IDENTITY_URL  web3-identity (8901) — mints the seeded session
+ */
+import { test, expect, baseURLFor, envFor } from '../fixtures';
+import { newSiweIdentity } from '../helpers/auth';
+import { seedSession } from '../helpers/session';
+
+const spaURL = () => envFor('social')['SOCIAL_WEB_URL'];
+const platformURL = () => baseURLFor('social');
+const identityURL = () => envFor('social')['SOCIAL_IDENTITY_URL'];
+
+function skipIfNoStack() {
+  test.skip(
+    !spaURL() || !platformURL() || !identityURL(),
+    'SOCIAL_WEB_URL / SOCIAL_BASE_URL / SOCIAL_IDENTITY_URL required',
+  );
+}
+function skipIfNoSPA() {
+  test.skip(!spaURL(), 'SOCIAL_WEB_URL not configured');
+}
+
+// SO-UI-010 (P1) — the "use local passport" entry opens verifyUrl in a new tab.
+test('SO-UI-010 passport entry opens verifyUrl in a new tab', async ({ page }) => {
+  skipIfNoSPA();
+  await page.goto(`${spaURL()}/#/login`);
+  // Switch to identity mode; the SPA creates a passport session and renders the QR.
+  await page.locator('.login-mode-switch-box').click();
+  // Wait for the rendered QR image — proves session.verifyUrl is set (not just loading).
+  await expect(page.locator('.login-qrcode-image')).toBeVisible({ timeout: 15_000 });
+
+  const [popup] = await Promise.all([
+    page.context().waitForEvent('page'),
+    page.locator('.login-passport-local').click(),
+  ]);
+  // window.open sets the URL synchronously even if the passport page itself is slow.
+  await popup.waitForLoadState('domcontentloaded').catch(() => {});
+  expect(popup.url()).toContain('/identity/authorize');
+});
+
+// SO-UI-011 (P1) — QR-login polling success -> redirect to chat.
+// DEGRADED SKIP: the poll only flips to `approved` after a real passport device
+// approves the request out-of-band; there is no way to complete the approval
+// from an automated e2e run (no credential probing), so success can't be reached.
+test('SO-UI-011 QR-login polling success redirects to chat', async () => {
+  test.skip(
+    true,
+    'QR-login completion needs an external passport device to approve the session; ' +
+      'the login/status poll cannot reach `approved` from an automated run.',
+  );
+});
+
+// SO-UI-013 (P1) — left nav renders chat / friends / groups entries.
+test('SO-UI-013 left nav renders chat/friends/groups entries', async ({ page }) => {
+  skipIfNoStack();
+  const user = await newSiweIdentity(platformURL()!, identityURL()!);
+  await seedSession(page, user.login);
+  await page.goto(`${spaURL()}/#/home/chat`);
+
+  await expect(page.locator('.navi-bar')).toBeVisible({ timeout: 15_000 });
+  // Three router-links in the menu.
+  await expect(page.locator('.navi-bar .menu .link')).toHaveCount(3);
+  await expect(page.locator('.navi-bar .icon-chat')).toBeVisible();
+  await expect(page.locator('.navi-bar .icon-friend')).toBeVisible();
+  await expect(page.locator('.navi-bar .icon-group')).toBeVisible();
+});
+
+// SO-UI-014 (P1) — switch between chat/friends/groups views in place (SPA, hash only).
+test('SO-UI-014 switch between chat/friends/groups views in place', async ({ page }) => {
+  skipIfNoStack();
+  const user = await newSiweIdentity(platformURL()!, identityURL()!);
+  await seedSession(page, user.login);
+  await page.goto(`${spaURL()}/#/home/chat`);
+  await expect(page.locator('.navi-bar')).toBeVisible({ timeout: 15_000 });
+
+  await page.locator('.navi-bar .icon-friend').click();
+  await expect(page).toHaveURL(/#\/home\/friend$/);
+  await expect(page.locator('.navi-bar')).toBeVisible(); // stayed in the SPA shell
+
+  await page.locator('.navi-bar .icon-group').click();
+  await expect(page).toHaveURL(/#\/home\/group$/);
+  await expect(page.locator('.navi-bar')).toBeVisible();
+
+  await page.locator('.navi-bar .icon-chat').click();
+  await expect(page).toHaveURL(/#\/home\/chat$/);
+  await expect(page.locator('.content-box')).toBeVisible();
+});
+
+// SO-UI-015 (P1) — open the settings dialog and edit the profile nickName.
+test('SO-UI-015 open settings dialog to edit profile', async ({ page }) => {
+  skipIfNoStack();
+  const user = await newSiweIdentity(platformURL()!, identityURL()!);
+  await seedSession(page, user.login);
+  await page.goto(`${spaURL()}/#/home/chat`);
+  await expect(page.locator('.navi-bar')).toBeVisible({ timeout: 15_000 });
+
+  // Bottom settings icon opens the Setting dialog.
+  await page.locator('.navi-bar .icon-setting').click();
+  const dialog = page.locator('.el-dialog:visible');
+  await expect(dialog).toBeVisible({ timeout: 10_000 });
+  await expect(dialog.locator('.el-dialog__title')).toHaveText('设置');
+
+  // Edit the nickName input. Target the "昵称" form-item specifically — the first
+  // enabled input in the dialog is the hidden avatar-upload <input type=file>.
+  const nickInput = dialog
+    .locator('.el-form-item', { hasText: '昵称' })
+    .locator('input:not([disabled])');
+  await expect(nickInput).toBeVisible();
+  const newNick = `E2E${Date.now() % 100000}`;
+  await nickInput.fill(newNick);
+
+  // Submit ("确 定"); a successful PUT /user/update closes the dialog.
+  await dialog.getByRole('button', { name: /确\s*定/ }).click();
+  await expect(page.locator('.el-dialog:visible')).toHaveCount(0, { timeout: 10_000 });
+});
+
+// SO-UI-016 (P1) — logout clears the session and returns to the login page.
+test('SO-UI-016 logout clears session and returns to login', async ({ page }) => {
+  skipIfNoStack();
+  const user = await newSiweIdentity(platformURL()!, identityURL()!);
+  await seedSession(page, user.login);
+  await page.goto(`${spaURL()}/#/home/chat`);
+  await expect(page.locator('.navi-bar')).toBeVisible({ timeout: 15_000 });
+
+  await page.locator('.navi-bar .icon-exit').click();
+  await expect(page).toHaveURL(/#\/login$/, { timeout: 15_000 });
+  // sessionStorage tokens were cleared by onExit().
+  const token = await page.evaluate(() => sessionStorage.getItem('accessToken'));
+  expect(token).toBeNull();
+});
+
+// SO-UI-018 (P1) — send image/file/voice message.
+// DEGRADED SKIP: voice messages require live microphone capture (getUserMedia),
+// unavailable in headless e2e; image/file send is a multi-step toolbar +
+// file-chooser UI flow. The underlying upload contract is covered by
+// SO-API-056 / SO-API-057 (both real-green).
+test('SO-UI-018 send image/file/voice message', async () => {
+  test.skip(
+    true,
+    'Voice send needs a real microphone (getUserMedia) not available headless; ' +
+      'the image/file upload contract is covered by SO-API-056 / SO-API-057.',
+  );
+});
+
+// SO-UI-020 (P1) — unauthenticated chat access is redirected to login via API 401/400.
+test('SO-UI-020 unauth chat access redirects to login', async ({ page }) => {
+  skipIfNoSPA();
+  // No session seeded: Home.vue's GET /user/self returns NO_LOGIN (code 400),
+  // and the axios interceptor does location.href = "/" -> hash redirect to /login.
+  await page.goto(`${spaURL()}/#/home/chat`);
+  await expect(page).toHaveURL(/#\/login$/, { timeout: 15_000 });
+});

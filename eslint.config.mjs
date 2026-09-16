@@ -7,8 +7,8 @@ export default [
   {
     ignores: [
       'node_modules/**',
-      'playwright-report/**',
-      'test-results/**',
+      'reports/**',
+      'results/**',
       'dist/**',
       'coverage/**',
       '**/*.tsbuildinfo',

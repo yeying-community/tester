@@ -2,6 +2,10 @@
 
 End-to-end Playwright + Chromium test suite for the YeYing community products.
 
+Implemented cases and the backlog of cases still to write are tracked in
+[`docs/test-cases/`](docs/test-cases/) — a QA-authored, per-product enumeration
+of the E2E cases each product should have (see its `README.md` for progress).
+
 ## What this repo covers
 
 | product      | frontend / dev port | backend port         | what is tested                                              |
@@ -59,7 +63,7 @@ cp .env.example .env       # tweak BASE_URL values to match your local setup
 | `pnpm typecheck`             | `tsc -b` across every project                         |
 | `pnpm lint` / `pnpm format`  | eslint / prettier                                     |
 | `pnpm report`                | open the last HTML report                             |
-| `pnpm clean`                 | remove playwright-report, test-results, tsbuildinfo   |
+| `pnpm clean`                 | remove reports, results, tsbuildinfo                  |
 
 ## Verifying the scaffold without real services
 
