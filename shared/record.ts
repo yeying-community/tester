@@ -86,9 +86,46 @@ export class Recorder {
     }
     const idx = String(this.state.steps.length + 1).padStart(2, '0');
     const filename = `${idx}-${slug(label)}.png`;
+    // Extension popup and approval windows have an explicit 380x600 contract.
+    // `fullPage: true` makes Chromium expand a chrome-extension document to
+    // its layout/scroll height (for example 875px when a fixed modal is open),
+    // which records the screenshot canvas rather than the actual popup.
+    const isWalletExtensionPage = page.url().startsWith('chrome-extension://');
+    if (!isWalletExtensionPage) {
+      // Most wallet protocol tests use a deliberately empty synthetic dApp.
+      // Make the recorded state visible without changing the dApp behaviour.
+      await page.evaluate(({ label: stepLabel }) => {
+        const body = document.body;
+        if (!body) return;
+        const existing = body.querySelector<HTMLElement>('[data-manual-recorder-state]');
+        if (existing) {
+          existing.textContent = stepLabel;
+          return;
+        }
+        if (body.textContent?.trim()) return;
+        const state = document.createElement('aside');
+        state.dataset.manualRecorderState = 'true';
+        state.textContent = stepLabel;
+        Object.assign(state.style, {
+          position: 'fixed',
+          top: '24px',
+          left: '24px',
+          zIndex: '2147483647',
+          padding: '16px 20px',
+          border: '1px solid #cbd5e1',
+          borderRadius: '10px',
+          background: '#ffffff',
+          color: '#0f172a',
+          boxShadow: '0 4px 16px rgba(15, 23, 42, 0.12)',
+          font: '600 16px system-ui, sans-serif',
+          pointerEvents: 'none',
+        });
+        body.appendChild(state);
+      }, { label });
+    }
     await page.screenshot({
       path: join(this.dir!, filename),
-      fullPage: true,
+      fullPage: !isWalletExtensionPage,
     });
     this.state.steps.push({
       index: this.state.steps.length + 1,

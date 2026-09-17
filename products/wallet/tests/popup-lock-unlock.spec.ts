@@ -109,3 +109,49 @@ test('lock + unlock + SW-kill recovery preserves wallet access', async ({ record
     await teardownWalletContext(ctx);
   }
 });
+
+// WL-UI-034: repeated wrong unlock attempts each show 「密码错误」, never clear
+// the input, never leak into the wallet page, and a correct password after
+// several failures still unlocks (no lock-out that traps a legit user).
+test('WL-UI-034: repeated wrong unlock passwords are each rejected without leaking or clearing', async ({
+  recorder,
+}) => {
+  const ctx = await loadWalletContext();
+  try {
+    await stubPublicEndpoints(ctx.context);
+
+    const popup = await createAndUnlockWallet(ctx.context, ctx.extensionId);
+
+    // Lock from the header menu, then reopen to reach the unlock page.
+    await byId(popup, 'walletHeaderMenuBtn').click();
+    await byId(popup, 'lockWalletBtn').click();
+    await byId(popup, 'unlockPage').waitFor({ state: 'visible', timeout: 15_000 });
+    await popup.close();
+
+    const locked = await openPopup(ctx.context, ctx.extensionId);
+    await byId(locked, 'unlockPage').waitFor({ state: 'visible', timeout: 15_000 });
+
+    // Three consecutive wrong attempts, each with a distinct value so we can
+    // assert the field keeps exactly what the user typed.
+    for (let attempt = 1; attempt <= 3; attempt++) {
+      const wrong = `definitely-wrong-${attempt}`;
+      await byId(locked, 'unlockPassword').fill(wrong);
+      await byId(locked, 'unlockBtn').click();
+      await expect(byId(locked, 'globalToast')).toContainText('密码错误', { timeout: 10_000 });
+      // The input is NOT cleared — the user can correct their typo in place.
+      await expect(byId(locked, 'unlockPassword')).toHaveValue(wrong);
+      // Still locked — no leak into the wallet page.
+      await expect(byId(locked, 'walletPage')).toBeHidden();
+      await expect(byId(locked, 'unlockPage')).toBeVisible();
+      await recorder.step(locked, `第 ${attempt} 次输错密码,仍停留在解锁页`);
+    }
+
+    // A correct password after the failures still unlocks.
+    await byId(locked, 'unlockPassword').fill(TEST_PASSWORD);
+    await byId(locked, 'unlockBtn').click();
+    await byId(locked, 'walletPage').waitFor({ state: 'visible', timeout: 15_000 });
+    await recorder.step(locked, '多次失败后正确密码仍可解锁');
+  } finally {
+    await teardownWalletContext(ctx);
+  }
+});

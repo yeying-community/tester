@@ -67,3 +67,44 @@ test('identity mode triggers a passport session (QR or loading state)', async ({
     page.locator('.login-qrcode-image, .login-qrcode-loading')
   ).toBeVisible({ timeout: 15_000 });
 });
+
+// SO-UI-008 (P2) — clicking wallet login with no injected provider surfaces a
+// clean error and does not crash the page.
+test('SO-UI-008 wallet login without a provider fails gracefully', async ({ page }) => {
+  skipIfNoSPA();
+  const pageErrors: string[] = [];
+  page.on('pageerror', (e) => pageErrors.push(e.message));
+
+  await page.goto(`${spaURL()}/#/login`);
+  const walletBtn = page.locator('.wallet-login-button');
+  await expect(walletBtn).toBeVisible({ timeout: 10_000 });
+  await walletBtn.click();
+
+  // No wallet extension -> the SPA shows an Element-Plus message ("未检测到钱包插件").
+  const msg = page.locator('.el-message');
+  await expect(msg).toBeVisible({ timeout: 10_000 });
+  await expect(msg).toContainText('钱包');
+
+  // No JS crash: still on the login page, the button remains usable.
+  await expect(page).toHaveURL(/#\/login$/);
+  await expect(walletBtn).toBeVisible();
+  expect(pageErrors).toEqual([]);
+});
+
+// SO-UI-009 (P2) — the register page (#/register) renders its full form.
+test('SO-UI-009 register page renders the form', async ({ page }) => {
+  skipIfNoSPA();
+  await page.goto(`${spaURL()}/#/register`);
+  await expect(page).toHaveURL(/#\/register$/);
+
+  // Email / nickname / password / confirm-password fields.
+  await expect(page.locator('input[type="email"]')).toBeVisible({ timeout: 10_000 });
+  await expect(page.getByPlaceholder('昵称')).toBeVisible();
+  await expect(page.getByPlaceholder('密码', { exact: true })).toBeVisible();
+  await expect(page.getByPlaceholder('确认密码', { exact: true })).toBeVisible();
+
+  // Register / clear actions + the "already have an account" link back to login.
+  await expect(page.getByRole('button', { name: '注册' })).toBeVisible();
+  await expect(page.getByRole('button', { name: '清空' })).toBeVisible();
+  await expect(page.locator('.to-login')).toContainText('前往登录');
+});

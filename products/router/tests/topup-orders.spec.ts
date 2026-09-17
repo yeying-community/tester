@@ -168,3 +168,35 @@ test.describe('top-up order lifecycle (serial, self-cleaning)', () => {
     }
   });
 });
+
+// RT-API-037 (P2) — order status-machine coverage
+// (created→pending→paid→fulfilled, plus failed/canceled terminals).
+//
+// DEGRADED SKIP on this deployment. Driving an order through its status machine
+// requires (a) creating a real order — which under `top_up_mode=api` registers
+// it with the external payment provider (the boundary this suite does not
+// cross) — and (b) a stubbable payment callback to advance created→pending→paid
+// →fulfilled. Neither is reachable against the live external-pay deployment, so
+// the transition coverage cannot be exercised end-to-end here. The reachable
+// slices of the machine are already asserted elsewhere: creation returns
+// created|pending (RT-API-032), refresh normalizes to a known status
+// (RT-API-034), and cancel moves a pending order to canceled while rejecting an
+// already-paid one (RT-API-035) — all in the redirect-mode branch above.
+test('order status transitions follow the state machine (RT-API-037)', async () => {
+  skipIfNoService();
+  skipIfNoKey();
+  const baseURL = baseURLFor('router')!;
+  test.skip(
+    await topUpModeIsExternal(baseURL),
+    'top_up_mode=api: advancing an order through created→pending→paid→fulfilled needs a real ' +
+      'external-payment order + a stubbed payment callback (out of scope); reachable slices are ' +
+      'covered by RT-API-032/034/035',
+  );
+  // On a redirect-mode deployment the create→refresh→cancel slices above already
+  // exercise the reachable transitions; a full paid→fulfilled drive still needs a
+  // payment callback we do not stub, so there is nothing further to assert here.
+  test.info().annotations.push({
+    type: 'boundary',
+    description: 'status-machine transitions verified only to the reachable create/refresh/cancel slices',
+  });
+});

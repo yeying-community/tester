@@ -205,6 +205,43 @@ test('ND-API-026 application config round-trips through PUT then GET', async () 
   }
 });
 
+test('ND-API-027 duplicate-name pre-check search returns matching own applications', async () => {
+  skipIfNoService();
+  test.skip(!envFor('node')['NODE_WALLET_PRIVATE_KEY'], 'node wallet env not configured');
+  const baseURL = baseURLFor('node')!;
+  const s = await freshSession(baseURL);
+  try {
+    // Create a draft with a known, unique name.
+    const req = await buildCreateApplicationBody(s.wallet, s.address);
+    const createRes = await s.ctx.post('/api/v1/public/applications', { data: req.body });
+    expect(createRes.status(), await createRes.text().catch(() => '')).toBe(200);
+    const uid = ((await createRes.json()) as { data: { uid: string } }).data.uid;
+    expect(uid).toBeTruthy();
+
+    // The front-end's rename-collision check searches by the same name within
+    // the caller's own (offline-inclusive) scope. It must return 200 with the
+    // matching row — never a 500 — so the UI can warn about a duplicate.
+    const searchRes = await s.ctx.post('/api/v1/public/applications/search', {
+      data: { condition: { name: req.name, owner: s.address, includeOffline: true } },
+    });
+    expect(searchRes.status(), await searchRes.text().catch(() => '')).toBe(200);
+    const body = (await searchRes.json()) as {
+      code: number;
+      data: { items: Array<{ uid: string; name: string }> };
+    };
+    expect(body.code).toBe(0);
+    const hit = body.data.items.find((item) => item.uid === uid);
+    expect(hit, 'the just-created same-name app is returned by the search').toBeTruthy();
+    expect(hit!.name).toBe(req.name);
+
+    await s.ctx.delete(`/api/v1/public/applications/${uid}`, {
+      data: await deleteBody(s.wallet, s.address, uid),
+    });
+  } finally {
+    await s.ctx.dispose();
+  }
+});
+
 test('ND-API-028 non-admin audit search outside own scope returns 403', async () => {
   skipIfNoService();
   test.skip(!envFor('node')['NODE_WALLET_PRIVATE_KEY'], 'node wallet env not configured');

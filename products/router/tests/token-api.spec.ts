@@ -231,3 +231,50 @@ test('GET /token/search returns a well-formed result set', async () => {
     await ctx.dispose();
   }
 });
+
+// RT-API-031 (P2) — token/status returns quota status when called with an API Key.
+//
+// DEGRADED SKIP: `GET /token/status` is guarded by TokenAuth, which accepts only
+// a minted `sk-…` API key — never a user JWT (that JWT-rejection boundary is
+// covered by RT-API-023 in authz.spec). Minting an API key needs the account to
+// have available models, which requires a purchase — the external-payment
+// boundary this suite does not cross. Probe available models live; with none,
+// no key can be minted and the API-Key branch is unreachable, so we skip.
+test('token/status returns quota status for an API Key (RT-API-031)', async () => {
+  skipIfNoService();
+  skipIfNoKey();
+  const baseURL = baseURLFor('router')!;
+  const { token } = await acquireRouterToken(baseURL);
+  const ctx = await apiContext(baseURL, { Authorization: `Bearer ${token}` });
+  try {
+    const models = (await (await ctx.get('/api/v1/public/user/models/available')).json()) as {
+      data?: unknown[];
+    };
+    test.skip(
+      !Array.isArray(models.data) || models.data.length === 0,
+      'account has no available models, so no sk- API key can be minted; ' +
+        'the token/status API-Key branch (RT-API-031) needs purchased models (payment boundary)',
+    );
+
+    // Funded account: mint a token, then read its status with the API Key.
+    const create = (await (
+      await ctx.post('/api/v1/public/token/', { data: { name: `e2e-status-${Date.now()}` } })
+    ).json()) as { success?: boolean; data?: { id?: string | number; key?: string } };
+    expect(create.success).toBe(true);
+    const key = create.data?.key ?? '';
+    const id = String(create.data?.id ?? '');
+    expect(key).toMatch(/^sk-/);
+    const keyCtx = await apiContext(baseURL, { Authorization: `Bearer ${key}` });
+    try {
+      const res = await keyCtx.get('/api/v1/public/token/status');
+      expect(res.status()).toBe(200);
+      const body = (await res.json()) as { data?: Record<string, unknown> };
+      expect(body.data).toBeTruthy();
+    } finally {
+      await keyCtx.dispose();
+      if (id) await ctx.delete(`/api/v1/public/token/${id}/`).catch(() => {});
+    }
+  } finally {
+    await ctx.dispose();
+  }
+});

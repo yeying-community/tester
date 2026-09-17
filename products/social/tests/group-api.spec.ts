@@ -155,3 +155,30 @@ test.describe.serial('social group management', () => {
     expect(active).toBeUndefined();
   });
 });
+
+// SO-API-043 (P2) — toggle the per-group do-not-disturb flag; it round-trips
+// through /group/find (GroupVO.isDnd). Standalone (own group) so it doesn't
+// depend on the serial block's destructive ordering.
+test('SO-API-043 group do-not-disturb toggle', async () => {
+  test.skip(!platformURL() || !identityURL(), 'SOCIAL_BASE_URL / SOCIAL_IDENTITY_URL required');
+  const owner = await newSiweIdentity(platformURL()!, identityURL()!);
+  const ctx = await platformCtx(platformURL()!, owner.login.accessToken);
+  try {
+    const gc = await ctx.post('/group/create', { data: { name: `dnd-${Date.now() % 100000}` } });
+    const groupId = ((await gc.json()) as Envelope<GroupVO>).data.id;
+
+    const readDnd = async () =>
+      ((await (await ctx.get(`/group/find/${groupId}`)).json()) as Envelope<{ isDnd: boolean }>).data
+        .isDnd;
+
+    const on = await ctx.put('/group/dnd', { data: { groupId, isDnd: 1 } });
+    expect(((await on.json()) as Envelope<null>).code).toBe(200);
+    expect(await readDnd()).toBe(true);
+
+    const off = await ctx.put('/group/dnd', { data: { groupId, isDnd: 0 } });
+    expect(((await off.json()) as Envelope<null>).code).toBe(200);
+    expect(await readDnd()).toBe(false);
+  } finally {
+    await ctx.dispose();
+  }
+});

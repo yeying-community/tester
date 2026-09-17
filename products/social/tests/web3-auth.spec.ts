@@ -86,6 +86,70 @@ test('SO-API-019b wallet link without a session is rejected', async () => {
   }
 });
 
+// SO-API-020 (P2) — unbind a wallet from the current (SIWE-authenticated) session.
+// Live: POST /auth/wallet/unlink {address} with the session in header `accessToken`
+// -> {code:200}. Without a session -> {code:400,"未登录"}.
+test('SO-API-020 unlink wallet from current session', async () => {
+  skipIfNoIdentity();
+  // Establish a session by logging in wallet A via SIWE.
+  const A = Wallet.createRandom();
+  const { envelope } = await siweLogin(identityURL()!, A.privateKey);
+  expect(envelope.code).toBe(200);
+  const sessionToken = envelope.data.accessToken;
+
+  // Bind a second wallet W (valid SIWE proof over its own fresh nonce) first,
+  // so there is a real binding to remove.
+  const W = Wallet.createRandom();
+  const ctx = await request.newContext({ baseURL: identityURL()! });
+  try {
+    const nonceEnv = await issueNonce(ctx, W.address, '1');
+    const message = buildSiweMessage({
+      address: W.address,
+      nonce: nonceEnv.data.nonce,
+      chainId: nonceEnv.data.chainId,
+    });
+    const signature = await W.signMessage(message);
+    const link = await ctx.post('/auth/wallet/link', {
+      headers: { accessToken: sessionToken },
+      data: { address: W.address, signature, message },
+    });
+    expect(((await link.json()) as Envelope<null>).code).toBe(200);
+
+    // Unlink succeeds with the session header.
+    const unlink = await ctx.post('/auth/wallet/unlink', {
+      headers: { accessToken: sessionToken },
+      data: { address: W.address },
+    });
+    expect(((await unlink.json()) as Envelope<null>).code).toBe(200);
+
+    // Without a session the unlink is rejected (guards the session gate).
+    const noSession = await ctx.post('/auth/wallet/unlink', { data: { address: W.address } });
+    const noSessionBody = (await noSession.json()) as Envelope<null>;
+    expect(noSessionBody.code).not.toBe(200); // NO_LOGIN (400)
+  } finally {
+    await ctx.dispose();
+  }
+});
+
+// SO-API-022 (P2) — logout the current session; the endpoint reports success.
+// Live: POST /api/v1/public/auth/logout (Authorization: Bearer) -> {code:200}.
+test('SO-API-022 logout current session', async () => {
+  skipIfNoIdentity();
+  const { envelope } = await siweLogin(identityURL()!, Wallet.createRandom().privateKey);
+  expect(envelope.code).toBe(200);
+
+  const ctx = await request.newContext({ baseURL: identityURL()! });
+  try {
+    const res = await ctx.post('/api/v1/public/auth/logout', {
+      headers: { Authorization: `Bearer ${envelope.data.accessToken}` },
+    });
+    const body = (await res.json()) as Envelope<null>;
+    expect(body.code).toBe(200); // 注销成功
+  } finally {
+    await ctx.dispose();
+  }
+});
+
 // SO-API-021 (P1) — web3 public token refresh rotates a valid token pair.
 test('SO-API-021 web3 public auth token refresh', async () => {
   skipIfNoIdentity();

@@ -10,15 +10,15 @@
 | 模块 | 用例数 | 已实现 | 待实现 |
 | --- | --- | --- | --- |
 | 一、钱包创建与初始化 | 5 | 5 | 0 |
-| 二、钱包导入 | 5 | 4 | 1 |
-| 三、账户管理 | 5 | 3 | 2 |
-| 四、网络管理 | 5 | 2 | 3 |
+| 二、钱包导入 | 5 | 5 | 0 |
+| 三、账户管理 | 5 | 5 | 0 |
+| 四、网络管理 | 5 | 5 | 0 |
 | 五、安全与锁定恢复 | 5 | 5 | 0 |
-| 六、转账与交易 | 9 | 7 | 2 |
-| 七、消息签名与授权 | 5 | 4 | 1 |
-| 八、dApp 连接与 Provider | 13 | 11 | 2 |
-| 九、错误、异常与安全边界 | 4 | 0 | 4 |
-| **合计** | **56** | **41** | **15** |
+| 六、转账与交易 | 9 | 9 | 0 |
+| 七、消息签名与授权 | 5 | 5 | 0 |
+| 八、dApp 连接与 Provider | 13 | 13 | 0 |
+| 九、错误、异常与安全边界 | 4 | 4 | 0 |
+| **合计** | **56** | **56** | **0** |
 
 > 编号说明:`WL-UI-*` 为 popup 内交互;`WL-DAPP-*` 为经 `window.ethereum` / 审批窗的 dApp 交互;`WL-E2E-*` 为跨真实链/网络的端到端流程。
 > 通用前置(除特别说明外均适用):已通过 `WALLET_EXTENSION_PATH` 指向钱包源码目录;用 `loadWalletContext()` 启动带扩展的持久化 Chromium;`stubPublicEndpoints` 屏蔽 YeYing 公共端点以保证用例可离线运行。
@@ -127,7 +127,7 @@
 ### WL-UI-010 导入非法私钥报错
 - 优先级:P2
 - 类型:UI
-- 状态:⬜ 待实现
+- 状态:✅ 已实现 — products/wallet/tests/popup-import-negative.spec.ts:61
 - 前置条件:无。
 - 步骤:
   1. 私钥 tab 填入长度/格式非法的私钥,提交。
@@ -171,7 +171,7 @@
 ### WL-UI-014 账户详情展示收款二维码并复制地址
 - 优先级:P2
 - 类型:UI
-- 状态:⬜ 待实现
+- 状态:✅ 已实现 — products/wallet/tests/popup-account-detail.spec.ts:33
 - 前置条件:至少 1 个账户。
 - 步骤:
   1. 进 `#accountDetailPage`,确认 `#accountDetailQr` 渲染二维码、`#accountDetailAddress` 显示完整地址。
@@ -181,7 +181,7 @@
 ### WL-UI-015 导出账户
 - 优先级:P2
 - 类型:UI
-- 状态:⬜ 待实现
+- 状态:✅ 已实现 — products/wallet/tests/popup-account-detail.spec.ts:94
 - 前置条件:已创建钱包。
 - 步骤:
   1. 在账户管理页点 `#accountsExportBtn`(或详情页 `#exportAccountQrBtn`),按需输入密码。
@@ -205,7 +205,7 @@
 ### WL-UI-017 编辑已有自定义网络
 - 优先级:P2
 - 类型:UI
-- 状态:⬜ 待实现
+- 状态:✅ 已实现 — products/wallet/tests/popup-network.spec.ts:174
 - 前置条件:已存在一个自定义网络。
 - 步骤:
   1. 进 `#networkManagePage`,进入该网络编辑,修改名称/RPC/符号并保存。
@@ -214,7 +214,7 @@
 ### WL-UI-018 删除自定义网络
 - 优先级:P2
 - 类型:UI
-- 状态:⬜ 待实现
+- 状态:✅ 已实现 — products/wallet/tests/popup-network.spec.ts:256
 - 前置条件:已存在一个自定义网络且当前未激活它。
 - 步骤:
   1. 在 `#networkManagePage` 删除该网络并确认。
@@ -223,7 +223,7 @@
 ### WL-UI-019 默认网络存在且可切换
 - 优先级:P2
 - 类型:UI
-- 状态:⬜ 待实现
+- 状态:✅ 已实现 — products/wallet/tests/popup-network.spec.ts:309
 - 前置条件:全新钱包(未加自定义网络)。
 - 步骤:
   1. 打开网络选择器,查看内置网络。
@@ -351,7 +351,7 @@
 ### WL-UI-030 清空交易历史
 - 优先级:P2
 - 类型:UI
-- 状态:⬜ 待实现
+- 状态:✅ 已实现 — products/wallet/tests/popup-clear-transactions.spec.ts:33
 - 前置条件:活动列表非空。
 - 步骤:
   1. 点 `#clearTransactionsBtn` 并确认。
@@ -378,7 +378,7 @@
 ### WL-UI-033 通讯录新增联系人并在转账中选用
 - 优先级:P2
 - 类型:UI
-- 状态:⬜ 待实现
+- 状态:✅ 已实现 — products/wallet/tests/popup-contacts.spec.ts:24
 - 前置条件:钱包已解锁。
 - 步骤:
   1. 进 `#contactsPage`,`#openAddContactBtn` 打开 `#contactEditorModal`,填 `#contactNameInput` / `#contactAddressInput`,保存。
@@ -432,7 +432,7 @@
 ### WL-DAPP-005 ReCap(EIP-5573)能力结构化展示
 - 优先级:P2
 - 类型:DAPP
-- 状态:⬜ 待实现
+- 状态:✅ 已实现 — products/wallet/tests/dapp-recap.spec.ts:25
 - 前置条件:已连接;SIWE 资源含 `urn:recap:` 能力串。
 - 步骤:
   1. 发起带 ReCap 的 SIWE 签名请求。
@@ -517,7 +517,7 @@
 ### WL-DAPP-013 `wallet_watchAsset`(EIP-747)审批
 - 优先级:P2
 - 类型:DAPP
-- 状态:⬜ 待实现
+- 状态:✅ 已实现 — products/wallet/tests/dapp-watch-asset.spec.ts:65
 - 前置条件:已连接。
 - 步骤:
   1. dApp 调 `wallet_watchAsset`(ERC-20)。
@@ -557,7 +557,7 @@
 ### WL-DAPP-017 连接后切换账户触发 accountsChanged
 - 优先级:P2
 - 类型:DAPP
-- 状态:⬜ 待实现
+- 状态:✅ 已实现 — products/wallet/tests/dapp-accounts.spec.ts:77
 - 前置条件:dApp 已连接,钱包有 ≥2 账户。
 - 步骤:
   1. dApp 监听 `accountsChanged`;在 popup 切换当前账户。
@@ -566,7 +566,7 @@
 ### WL-DAPP-018 未连接时 `eth_accounts` 返回空数组
 - 优先级:P2
 - 类型:DAPP
-- 状态:⬜ 待实现
+- 状态:✅ 已实现 — products/wallet/tests/dapp-accounts.spec.ts:58
 - 前置条件:钱包已解锁但该源未授权。
 - 步骤:
   1. dApp 直接调 `eth_accounts`(不先 requestAccounts)。
@@ -588,7 +588,7 @@
 ### WL-DAPP-020 审批窗关闭/超时视为拒绝
 - 优先级:P2
 - 类型:DAPP
-- 状态:⬜ 待实现
+- 状态:✅ 已实现 — products/wallet/tests/dapp-approval-lifecycle.spec.ts:44
 - 前置条件:已解锁。
 - 步骤:
   1. dApp 发起需审批的请求,不点批准/拒绝,直接关闭审批窗(或等待超时)。
@@ -597,7 +597,7 @@
 ### WL-DAPP-021 同源并发/重复请求复用同一审批窗
 - 优先级:P2
 - 类型:DAPP
-- 状态:⬜ 待实现
+- 状态:✅ 已实现 — products/wallet/tests/dapp-approval-lifecycle.spec.ts:86
 - 前置条件:已解锁(对应钱包审批复用回归)。
 - 步骤:
   1. 同一源短时间内连续发起两次需审批请求。
@@ -606,7 +606,7 @@
 ### WL-UI-034 连续多次错误解锁密码的处理
 - 优先级:P2
 - 类型:UI
-- 状态:⬜ 待实现
+- 状态:✅ 已实现 — products/wallet/tests/popup-lock-unlock.spec.ts:116
 - 前置条件:钱包已锁定。
 - 步骤:
   1. 在 `#unlockPage` 连续多次输入错误密码。

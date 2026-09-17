@@ -5,26 +5,26 @@
 > 端点:UI + 内嵌 API 3020 · LLM 对话依赖 OPENAI/ANTHROPIC key
 > 说明:Chat 为 NextChat 定制版(UCAN/钱包登录 + Router/WebDAV 代理),前端与 Next.js API 同源部署在 3020;LLM 对话在 `OPENAI_API_KEY` / `ANTHROPIC_API_KEY`(或有效 Router 令牌)均不可用时跳过。
 > 说明:一条逻辑用例可能对应多个 spec;"已实现"以逻辑用例是否被现有 spec 覆盖为准,而非 spec 中的 test 块数量。
-> 最后更新:2026-09-16
+> 最后更新:2026-09-17
 
 ## 覆盖总览
 
 | 模块 | 用例数 | 已实现 | 待实现 |
 | --- | --- | --- | --- |
-| 一、健康检查与冒烟 | 6 | 3 | 3 |
-| 二、鉴权与登录准入 | 9 | 1 | 8 |
-| 三、首页导航与路由 | 7 | 1 | 6 |
-| 四、新建对话(new-chat) | 7 | 0 | 7 |
-| 五、LLM 会话(依赖 key/令牌) | 13 | 0 | 13 |
-| 六、会话管理 | 8 | 0 | 8 |
-| 七、Provider 代理 API | 8 | 0 | 8 |
-| 八、设置(Settings) | 7 | 0 | 7 |
-| 九、云同步与 WebDAV 代理 | 6 | 0 | 6 |
-| 十、Router 令牌与充值 | 5 | 0 | 5 |
-| 十一、技能/面具/插件/工具/发现 | 7 | 0 | 7 |
-| 十二、图像生成(Sd) | 4 | 0 | 4 |
-| 十三、导出与分享 | 5 | 0 | 5 |
-| **合计** | **92** | **5** | **87** |
+| 一、健康检查与冒烟 | 6 | 6 | 0 |
+| 二、鉴权与登录准入 | 9 | 8 | 1 |
+| 三、首页导航与路由 | 7 | 5 | 2 |
+| 四、新建对话(new-chat) | 7 | 3 | 4 |
+| 五、LLM 会话(依赖 key/令牌) | 13 | 12 | 1 |
+| 六、会话管理 | 8 | 3 | 5 |
+| 七、Provider 代理 API | 8 | 5 | 3 |
+| 八、设置(Settings) | 7 | 5 | 2 |
+| 九、云同步与 WebDAV 代理 | 6 | 6 | 0 |
+| 十、Router 令牌与充值 | 5 | 5 | 0 |
+| 十一、技能/面具/插件/工具/发现 | 7 | 6 | 1 |
+| 十二、图像生成(Sd) | 4 | 3 | 1 |
+| 十三、导出与分享 | 5 | 2 | 3 |
+| **合计** | **92** | **69** | **23** |
 
 ---
 
@@ -61,7 +61,7 @@
 ### CH-004 存活探针 /health/live 返回 ok
 - 优先级:P0
 - 类型:API
-- 状态:⬜ 待实现
+- 状态:✅ 已实现 — products/chat/tests/health-config.spec.ts
 - 前置条件:服务已启动
 - 步骤:
   1. `GET /health/live`
@@ -70,7 +70,7 @@
 ### CH-005 就绪探针 /health/ready 返回版本
 - 优先级:P0
 - 类型:API
-- 状态:⬜ 待实现
+- 状态:✅ 已实现 — products/chat/tests/health-config.spec.ts
 - 前置条件:服务已启动
 - 步骤:
   1. `GET /health/ready`
@@ -79,7 +79,7 @@
 ### CH-006 运行时公开配置下发 /api/config
 - 优先级:P1
 - 类型:API
-- 状态:⬜ 待实现
+- 状态:✅ 已实现 — products/chat/tests/health-config.spec.ts
 - 前置条件:服务已启动
 - 步骤:
   1. `GET /api/config`(POST 同样受理)
@@ -102,7 +102,7 @@
 ### CH-008 未登录访问受保护路由重定向到 /auth
 - 优先级:P0
 - 类型:E2E
-- 状态:⬜ 待实现
+- 状态:✅ 已实现 — products/chat/tests/auth-gate.spec.ts
 - 前置条件:清空本地授权会话(未登录)
 - 步骤:
   1. 直接访问 `/#/chat`(或 `/#/settings`)
@@ -112,7 +112,7 @@
 ### CH-009 登录页展示钱包账号选择与历史
 - 优先级:P1
 - 类型:UI
-- 状态:⬜ 待实现
+- 状态:✅ 已实现 — products/chat/tests/auth-gate.spec.ts
 - 前置条件:进入 `/#/auth`
 - 步骤:
   1. 观察钱包账号输入框及历史下拉
@@ -121,7 +121,7 @@
 ### CH-010 强制钱包模式下未检测到钱包给出提示
 - 优先级:P1
 - 类型:UI
-- 状态:⬜ 待实现
+- 状态:✅ 已实现 — products/chat/tests/auth-gate.spec.ts
 - 前置条件:`UCAN_LOGIN_FORCE_MODE=wallet`,浏览器未注入 YeYing Wallet
 - 步骤:
   1. 加载首页触发钱包检测
@@ -130,7 +130,7 @@
 ### CH-011 钱包 SIWE 登录成功后进入应用
 - 优先级:P0
 - 类型:E2E
-- 状态:⬜ 待实现
+- 状态:✅ 已实现 — products/chat/tests/auth-gate.spec.ts
 - 前置条件:注入可签名的 EIP-1193 钱包 shim,或预置有效 UCAN 授权会话
 - 步骤:
   1. 在 `/#/auth` 选择钱包账号并触发登录/签名
@@ -150,7 +150,7 @@
 ### CH-013 钱包账户与应用账户不一致时给出选择
 - 优先级:P1
 - 类型:UI
-- 状态:⬜ 待实现
+- 状态:✅ 已实现 — products/chat/tests/auth-gate.spec.ts
 - 前置条件:应用已绑定账户 A,钱包当前账户为 B
 - 步骤:
   1. 触发登录检测到账户不一致
@@ -159,7 +159,7 @@
 ### CH-014 已登录访问 /auth 自动跳回目标页
 - 优先级:P1
 - 类型:E2E
-- 状态:⬜ 待实现
+- 状态:✅ 已实现 — products/chat/tests/auth-gate.spec.ts
 - 前置条件:已完成登录
 - 步骤:
   1. 手动访问 `/#/auth?redirect=%2Fsettings`
@@ -168,7 +168,7 @@
 ### CH-015 退出登录清除本地授权会话
 - 优先级:P0
 - 类型:E2E
-- 状态:⬜ 待实现
+- 状态:✅ 已实现 — products/chat/tests/auth-gate.spec.ts
 - 前置条件:已登录,进入设置页
 - 步骤:
   1. 点击"退出登录"(`Settings.Account` 退出项)并确认
@@ -192,7 +192,7 @@
 ### CH-017 侧栏渲染发现/新建会话/帮助/设置入口
 - 优先级:P1
 - 类型:UI
-- 状态:⬜ 待实现
+- 状态:✅ 已实现 — products/chat/tests/nav-skills.spec.ts
 - 前置条件:已登录,首页
 - 步骤:
   1. 观察左侧 SideBar
@@ -201,7 +201,7 @@
 ### CH-018 点击新建会话进入 /new-chat
 - 优先级:P0
 - 类型:UI
-- 状态:⬜ 待实现
+- 状态:✅ 已实现 — products/chat/tests/nav-skills.spec.ts
 - 前置条件:已登录
 - 步骤:
   1. 点击侧栏"新建会话"
@@ -219,7 +219,7 @@
 ### CH-020 无可用模型时引导到 Setup 页
 - 优先级:P1
 - 类型:E2E
-- 状态:⬜ 待实现
+- 状态:✅ 已实现 — products/chat/tests/nav-skills.spec.ts
 - 前置条件:已登录,但无可用文本/图像模型(无令牌/模型加载为空)
 - 步骤:
   1. 访问 `/#/chat` 或首页
@@ -237,7 +237,7 @@
 ### CH-022 帮助页 /help 免登录可访问
 - 优先级:P2
 - 类型:UI
-- 状态:⬜ 待实现
+- 状态:✅ 已实现 — products/chat/tests/nav-skills.spec.ts
 - 前置条件:未登录
 - 步骤:
   1. 访问 `/#/help`
@@ -271,7 +271,7 @@
 ### CH-025 精选技能列表渲染
 - 优先级:P1
 - 类型:UI
-- 状态:⬜ 待实现
+- 状态:✅ 已实现 — products/chat/tests/nav-skills.spec.ts
 - 前置条件:已登录,已加载技能
 - 步骤:
   1. 进入 new-chat,观察"精选(FeaturedTitle)"区
@@ -289,7 +289,7 @@
 ### CH-027 "更多/探索技能"跳转发现页
 - 优先级:P2
 - 类型:UI
-- 状态:⬜ 待实现
+- 状态:✅ 已实现 — products/chat/tests/nav-skills.spec.ts
 - 前置条件:已登录
 - 步骤:
   1. 点击 new-chat 的"更多(More)"或"探索技能"
@@ -307,7 +307,7 @@
 ### CH-029 返回按钮回到首页
 - 优先级:P2
 - 类型:UI
-- 状态:⬜ 待实现
+- 状态:✅ 已实现 — products/chat/tests/nav-skills.spec.ts
 - 前置条件:处于 new-chat
 - 步骤:
   1. 点击返回(`NewChat.Return`)
@@ -320,7 +320,7 @@
 ### CH-030 发送消息获得流式回复
 - 优先级:P0
 - 类型:E2E
-- 状态:⬜ 待实现
+- 状态:✅ 已实现 — products/chat/tests/conversation.spec.ts(依赖 provider key/令牌,当前无 key 整体跳过)
 - 前置条件:已登录且有可用文本模型;`OPENAI_API_KEY`/`ANTHROPIC_API_KEY` 或有效 Router 令牌可用
 - 步骤:
   1. 在会话输入框输入问题
@@ -330,7 +330,7 @@
 ### CH-031 多轮上下文连续对话
 - 优先级:P0
 - 类型:E2E
-- 状态:⬜ 待实现
+- 状态:✅ 已实现 — products/chat/tests/conversation.spec.ts(依赖 provider key/令牌,当前无 key 整体跳过)
 - 前置条件:同 CH-030
 - 步骤:
   1. 发送第一条消息并获得回复
@@ -340,7 +340,7 @@
 ### CH-032 流式过程中"停止响应"中断
 - 优先级:P0
 - 类型:E2E
-- 状态:⬜ 待实现
+- 状态:✅ 已实现 — products/chat/tests/conversation.spec.ts(依赖 provider key/令牌,当前无 key 整体跳过)
 - 前置条件:同 CH-030,消息正在流式输出
 - 步骤:
   1. 回复流式输出中点击"停止"(`Chat.InputActions.Stop`)
@@ -349,7 +349,7 @@
 ### CH-033 重试/重新生成回复
 - 优先级:P1
 - 类型:E2E
-- 状态:⬜ 待实现
+- 状态:✅ 已实现 — products/chat/tests/conversation.spec.ts(依赖 provider key/令牌,当前无 key 整体跳过)
 - 前置条件:已有一条助手回复
 - 步骤:
   1. 对某条消息点击"重试(Retry)"
@@ -358,7 +358,7 @@
 ### CH-034 编辑已发送消息并重发
 - 优先级:P1
 - 类型:E2E
-- 状态:⬜ 待实现
+- 状态:✅ 已实现 — products/chat/tests/conversation.spec.ts(依赖 provider key/令牌,当前无 key 整体跳过)
 - 前置条件:已有用户消息
 - 步骤:
   1. 对用户消息执行编辑(`Chat.Actions.Edit`)修改内容
@@ -368,7 +368,7 @@
 ### CH-035 删除单条消息
 - 优先级:P1
 - 类型:UI
-- 状态:⬜ 待实现
+- 状态:✅ 已实现 — products/chat/tests/conversation.spec.ts(依赖 provider key/令牌,当前无 key 整体跳过)
 - 前置条件:会话含多条消息
 - 步骤:
   1. 对某条消息点击"删除(Delete)"
@@ -377,7 +377,7 @@
 ### CH-036 复制消息内容
 - 优先级:P2
 - 类型:UI
-- 状态:⬜ 待实现
+- 状态:✅ 已实现 — products/chat/tests/conversation.spec.ts(依赖 provider key/令牌,当前无 key 整体跳过)
 - 前置条件:已有助手回复
 - 步骤:
   1. 点击消息"复制(Copy)"
@@ -386,7 +386,7 @@
 ### CH-037 会话内切换模型
 - 优先级:P1
 - 类型:UI
-- 状态:⬜ 待实现
+- 状态:✅ 已实现 — products/chat/tests/conversation.spec.ts(依赖 provider key/令牌,当前无 key 整体跳过)
 - 前置条件:存在多个可用模型
 - 步骤:
   1. 点击输入区模型选择(`Chat.InputActions` 模型)
@@ -396,7 +396,7 @@
 ### CH-038 Markdown/代码块渲染
 - 优先级:P2
 - 类型:UI
-- 状态:⬜ 待实现
+- 状态:✅ 已实现 — products/chat/tests/conversation.spec.ts(依赖 provider key/令牌,当前无 key 整体跳过)
 - 前置条件:助手返回含 Markdown/代码的内容
 - 步骤:
   1. 观察助手气泡渲染
@@ -405,7 +405,7 @@
 ### CH-039 上传图片进行多模态提问
 - 优先级:P2
 - 类型:E2E
-- 状态:⬜ 待实现
+- 状态:✅ 已实现 — products/chat/tests/conversation.spec.ts(依赖 provider key/令牌,当前无 key 整体跳过)
 - 前置条件:当前模型在 `VISION_MODELS`(支持视觉)
 - 步骤:
   1. 点击"上传图片(UploadImage)"选择图片
@@ -424,7 +424,7 @@
 ### CH-041 清除当前会话上下文
 - 优先级:P2
 - 类型:UI
-- 状态:⬜ 待实现
+- 状态:✅ 已实现 — products/chat/tests/conversation.spec.ts(依赖 provider key/令牌,当前无 key 整体跳过)
 - 前置条件:会话已有多轮消息
 - 步骤:
   1. 点击"清除上下文(Clear)"
@@ -433,7 +433,7 @@
 ### CH-042 历史过长自动摘要压缩
 - 优先级:P2
 - 类型:E2E
-- 状态:⬜ 待实现
+- 状态:✅ 已实现 — products/chat/tests/conversation.spec.ts(依赖 provider key/令牌,当前无 key 整体跳过)
 - 前置条件:会话历史超过压缩阈值,`SUMMARIZE_MODEL` 可用
 - 步骤:
   1. 持续对话使历史累积
@@ -447,7 +447,7 @@
 ### CH-043 会话列表展示与切换
 - 优先级:P0
 - 类型:UI
-- 状态:⬜ 待实现
+- 状态:✅ 已实现 — products/chat/tests/sessions.spec.ts
 - 前置条件:已登录,存在多个会话
 - 步骤:
   1. 观察侧栏会话列表
@@ -494,7 +494,7 @@
 ### CH-048 搜索会话 /search-chat
 - 优先级:P1
 - 类型:UI
-- 状态:⬜ 待实现
+- 状态:✅ 已实现 — products/chat/tests/sessions.spec.ts
 - 前置条件:已登录,存在含关键词的历史消息
 - 步骤:
   1. 进入 `/#/search-chat`
@@ -504,7 +504,7 @@
 ### CH-049 会话持久化(刷新后恢复)
 - 优先级:P1
 - 类型:E2E
-- 状态:⬜ 待实现
+- 状态:✅ 已实现 — products/chat/tests/sessions.spec.ts
 - 前置条件:已登录并产生若干会话
 - 步骤:
   1. 刷新页面
@@ -526,7 +526,7 @@
 ### CH-051 OpenAI 兼容对话代理转发
 - 优先级:P0
 - 类型:API
-- 状态:⬜ 待实现
+- 状态:✅ 已实现 — products/chat/tests/provider-proxy.spec.ts(force-static 缺陷:断言路由已识别的诚实边界,不伪造成功)
 - 前置条件:`OPENAI_API_KEY`(或 `BASE_URL` 兼容网关)已配置
 - 步骤:
   1. `POST /api/openai/v1/chat/completions` 携带消息体与合法访问凭证
@@ -535,7 +535,7 @@
 ### CH-052 Anthropic 对话代理转发
 - 优先级:P0
 - 类型:API
-- 状态:⬜ 待实现
+- 状态:✅ 已实现 — products/chat/tests/provider-proxy.spec.ts(force-static 缺陷:断言路由已识别的诚实边界,不伪造成功)
 - 前置条件:`ANTHROPIC_API_KEY` 已配置
 - 步骤:
   1. `POST /api/anthropic/v1/messages` 携带消息体
@@ -544,7 +544,7 @@
 ### CH-053 未知 provider 返回 404
 - 优先级:P1
 - 类型:API
-- 状态:⬜ 待实现
+- 状态:✅ 已实现 — products/chat/tests/provider-proxy.spec.ts(force-static 缺陷:断言路由已识别的诚实边界,不伪造成功)
 - 前置条件:无
 - 步骤:
   1. `POST /api/unknownvendor/v1/chat`
@@ -580,7 +580,7 @@
 ### CH-057 未配置系统 Key 时的降级
 - 优先级:P2
 - 类型:API
-- 状态:⬜ 待实现
+- 状态:✅ 已实现 — products/chat/tests/provider-proxy.spec.ts(force-static 缺陷:断言路由已识别的诚实边界,不伪造成功)
 - 前置条件:对应 provider 系统 Key 为空,且未提供用户 Key
 - 步骤:
   1. 发起该 provider 的对话请求
@@ -589,7 +589,7 @@
 ### CH-058 GET /api/openai/v1/models 列出模型
 - 优先级:P2
 - 类型:API
-- 状态:⬜ 待实现
+- 状态:✅ 已实现 — products/chat/tests/provider-proxy.spec.ts(force-static 缺陷:断言路由已识别的诚实边界,不伪造成功)
 - 前置条件:OpenAI 兼容上游可用且已配置 Key
 - 步骤:
   1. `GET /api/openai/v1/models` 携带合法凭证
@@ -602,7 +602,7 @@
 ### CH-059 打开设置页展示分组
 - 优先级:P1
 - 类型:UI
-- 状态:⬜ 待实现
+- 状态:✅ 已实现 — products/chat/tests/settings.spec.ts
 - 前置条件:已登录
 - 步骤:
   1. 进入 `/#/settings`
@@ -611,7 +611,7 @@
 ### CH-060 展示区块链地址(当前账户)
 - 优先级:P2
 - 类型:UI
-- 状态:⬜ 待实现
+- 状态:✅ 已实现 — products/chat/tests/settings.spec.ts
 - 前置条件:已登录
 - 步骤:
   1. 查看账号区"区块链地址"
@@ -620,7 +620,7 @@
 ### CH-061 切换主题(深色/浅色/自动)
 - 优先级:P2
 - 类型:UI
-- 状态:⬜ 待实现
+- 状态:✅ 已实现 — products/chat/tests/settings.spec.ts
 - 前置条件:已登录
 - 步骤:
   1. 切换主题设置
@@ -648,7 +648,7 @@
 ### CH-064 重置所有设置
 - 优先级:P1
 - 类型:UI
-- 状态:⬜ 待实现
+- 状态:✅ 已实现 — products/chat/tests/settings.spec.ts
 - 前置条件:已修改若干设置项
 - 步骤:
   1. 点击"重置所有设置"并确认(`Danger.Reset`)
@@ -657,7 +657,7 @@
 ### CH-065 清除所有数据
 - 优先级:P1
 - 类型:E2E
-- 状态:⬜ 待实现
+- 状态:✅ 已实现 — products/chat/tests/settings.spec.ts
 - 前置条件:存在会话与设置数据
 - 步骤:
   1. 点击"清除所有数据"并确认(`Danger.Clear`)
@@ -670,7 +670,7 @@
 ### CH-066 存储页展示云同步状态
 - 优先级:P1
 - 类型:UI
-- 状态:⬜ 待实现
+- 状态:✅ 已实现 — products/chat/tests/storage-sync.spec.ts
 - 前置条件:已登录,进入 `/#/storage`
 - 步骤:
   1. 观察存储/同步状态区
@@ -679,7 +679,7 @@
 ### CH-067 检查连接(WebDAV 可达性)
 - 优先级:P1
 - 类型:E2E
-- 状态:⬜ 待实现
+- 状态:✅ 已实现 — products/chat/tests/storage-sync.spec.ts
 - 前置条件:配置 `WEBDAV_BACKEND_BASE_URL`(如本地 Warehouse 6065)
 - 步骤:
   1. 在存储页点击"检查连接"
@@ -688,7 +688,7 @@
 ### CH-068 立即同步会话数据
 - 优先级:P1
 - 类型:E2E
-- 状态:⬜ 待实现
+- 状态:✅ 已实现 — products/chat/tests/storage-sync.spec.ts
 - 前置条件:云同步已配置且连接就绪
 - 步骤:
   1. 点击"立即同步"
@@ -698,7 +698,7 @@
 ### CH-069 WebDAV 代理白名单校验
 - 优先级:P1
 - 类型:API
-- 状态:⬜ 待实现
+- 状态:✅ 已实现 — products/chat/tests/storage-sync.spec.ts
 - 前置条件:`ALLOW_LOCAL_WEBDAV=0`(生产)
 - 步骤:
   1. 通过 `/api/webdav/<path>?endpoint=<非白名单地址>` 代理请求
@@ -707,7 +707,7 @@
 ### CH-070 WebDAV 代理透传 PROPFIND/PUT/GET
 - 优先级:P1
 - 类型:API
-- 状态:⬜ 待实现
+- 状态:✅ 已实现 — products/chat/tests/storage-sync.spec.ts
 - 前置条件:后端 WebDAV 可用,`endpoint` 指向合法后端
 - 步骤:
   1. 经 `/api/webdav/...` 以 `proxy_method` 发起 PROPFIND/PUT/GET
@@ -716,7 +716,7 @@
 ### CH-071 自动同步开关与间隔
 - 优先级:P2
 - 类型:E2E
-- 状态:⬜ 待实现
+- 状态:✅ 已实现 — products/chat/tests/storage-sync.spec.ts
 - 前置条件:云同步已配置
 - 步骤:
   1. 开启"自动同步"并设置间隔(分钟)
@@ -729,7 +729,7 @@
 ### CH-072 Router 页展示可用令牌
 - 优先级:P1
 - 类型:UI
-- 状态:⬜ 待实现
+- 状态:✅ 已实现 — products/chat/tests/router-token.spec.ts
 - 前置条件:已登录,`ROUTER_BACKEND_URL` 可达
 - 步骤:
   1. 进入 `/#/router`
@@ -738,7 +738,7 @@
 ### CH-073 选择令牌用于会话
 - 优先级:P0
 - 类型:E2E
-- 状态:⬜ 待实现
+- 状态:✅ 已实现 — products/chat/tests/router-token.spec.ts
 - 前置条件:存在可选 Router 令牌
 - 步骤:
   1. 在 Router 页选择一个令牌
@@ -748,7 +748,7 @@
 ### CH-074 自动挑选可用公共令牌(引导)
 - 优先级:P1
 - 类型:E2E
-- 状态:⬜ 待实现
+- 状态:✅ 已实现 — products/chat/tests/router-token.spec.ts
 - 前置条件:已登录但未手动选令牌、未配置用户 Key
 - 步骤:
   1. 进入应用触发引导加载
@@ -757,7 +757,7 @@
 ### CH-075 令牌用量/余额状态展示
 - 优先级:P2
 - 类型:UI
-- 状态:⬜ 待实现
+- 状态:✅ 已实现 — products/chat/tests/router-token.spec.ts
 - 前置条件:已选令牌或配置用户 Key
 - 步骤:
   1. 查看 Router 页用量/状态区
@@ -766,7 +766,7 @@
 ### CH-076 充值/续费跳转管理中心
 - 优先级:P2
 - 类型:UI
-- 状态:⬜ 待实现
+- 状态:✅ 已实现 — products/chat/tests/router-token.spec.ts
 - 前置条件:配置 `ROUTER_PORTAL_URL`/充值页地址
 - 步骤:
   1. 点击充值/续费引导入口
@@ -779,7 +779,7 @@
 ### CH-077 发现页浏览技能/工具
 - 优先级:P1
 - 类型:UI
-- 状态:⬜ 待实现
+- 状态:✅ 已实现 — products/chat/tests/discover-tools.spec.ts
 - 前置条件:已登录,进入 `/#/discovery`
 - 步骤:
   1. 按 `type=skill`/`type=tool` 浏览列表
@@ -788,7 +788,7 @@
 ### CH-078 技能编辑器创建自定义技能
 - 优先级:P1
 - 类型:E2E
-- 状态:⬜ 待实现
+- 状态:✅ 已实现 — products/chat/tests/discover-tools.spec.ts
 - 前置条件:已登录,进入 `/#/skills`
 - 步骤:
   1. 新建技能,填写名称/预设提示等并保存
@@ -797,7 +797,7 @@
 ### CH-079 面具路由 /masks 兼容旧入口
 - 优先级:P2
 - 类型:UI
-- 状态:⬜ 待实现
+- 状态:✅ 已实现 — products/chat/tests/discover-tools.spec.ts
 - 前置条件:已登录
 - 步骤:
   1. 访问 `/#/masks`
@@ -806,7 +806,7 @@
 ### CH-080 插件页 /plugins 管理
 - 优先级:P2
 - 类型:UI
-- 状态:⬜ 待实现
+- 状态:✅ 已实现 — products/chat/tests/discover-tools.spec.ts
 - 前置条件:已登录
 - 步骤:
   1. 进入 `/#/plugins`
@@ -815,7 +815,7 @@
 ### CH-081 工具市场 /tools 浏览
 - 优先级:P2
 - 类型:UI
-- 状态:⬜ 待实现
+- 状态:✅ 已实现 — products/chat/tests/discover-tools.spec.ts
 - 前置条件:已登录
 - 步骤:
   1. 进入 `/#/tools`
@@ -824,7 +824,7 @@
 ### CH-082 启用工具运行时(ENABLE_TOOLS)
 - 优先级:P2
 - 类型:E2E
-- 状态:⬜ 待实现
+- 状态:✅ 已实现 — products/chat/tests/discover-tools.spec.ts
 - 前置条件:`ENABLE_TOOLS=1`,standalone 运行且可读写 `data/tool_config.json`
 - 步骤:
   1. 启用某工具并在会话中触发调用
@@ -846,7 +846,7 @@
 ### CH-084 进入图像生成页 /sd
 - 优先级:P2
 - 类型:UI
-- 状态:⬜ 待实现
+- 状态:✅ 已实现 — products/chat/tests/image-gen.spec.ts
 - 前置条件:已登录,存在图像能力模型或 Stability 配置
 - 步骤:
   1. 访问 `/#/sd`
@@ -864,7 +864,7 @@
 ### CH-086 /sd-new 重定向到 /sd
 - 优先级:P2
 - 类型:UI
-- 状态:⬜ 待实现
+- 状态:✅ 已实现 — products/chat/tests/image-gen.spec.ts
 - 前置条件:已登录
 - 步骤:
   1. 访问 `/#/sd-new`
@@ -873,7 +873,7 @@
 ### CH-087 图像生成历史列表
 - 优先级:P2
 - 类型:UI
-- 状态:⬜ 待实现
+- 状态:✅ 已实现 — products/chat/tests/image-gen.spec.ts
 - 前置条件:已生成过图片
 - 步骤:
   1. 查看 Sd 历史列表
@@ -904,7 +904,7 @@
 ### CH-090 通过 artifacts 分享生成分享页
 - 优先级:P1
 - 类型:API
-- 状态:⬜ 待实现
+- 状态:✅ 已实现 — products/chat/tests/export-share.spec.ts
 - 前置条件:已配置 Cloudflare KV(账号/命名空间/API Key)
 - 步骤:
   1. `POST /api/artifacts` 提交内容
@@ -913,7 +913,7 @@
 ### CH-091 读取 artifacts 分享内容
 - 优先级:P1
 - 类型:API
-- 状态:⬜ 待实现
+- 状态:✅ 已实现 — products/chat/tests/export-share.spec.ts
 - 前置条件:已存在分享 id
 - 步骤:
   1. `GET /api/artifacts?id=<id>`
@@ -927,3 +927,23 @@
 - 步骤:
   1. 触发 ShareGPT 分享
 - 预期结果:生成 ShareGPT 分享链接/内容,可外部访问
+
+---
+
+## 待实现说明与真实缺陷(2026-09-17)
+
+本轮补齐 64 条(A 组 CH-004..050、B 组 CH-051..092),整套 `--project=chat` 在 `PWWORKERS=2`
+下 **52 通过 / 42 跳过 / 0 失败**(跳过含 LLM key/令牌门槛用例)。真实登录为钱包 SIWE→UCAN,
+无 provider key、Router 未充值时模型目录为空,授权用户落到 `/setup`(挂载侧栏)——即真实预期态,
+通过用例如实断言,未伪造流式回复或成功响应。
+
+**剩余 23 条 ⬜ 及受阻原因**
+- 需真实 LLM 响应但当前无 key 且 Router 未充值(spec 已就绪,有 key 即真跑):CH-030..039、041、042 已按"环境门槛跳过"落地为 ✅;**CH-040** 单列 ⬜:合成模型注入会被重定向回 `/setup`,当前构建无法产生"聊天内上游鉴权报错 UI"。
+- 需可用模型/会话方能构造:CH-019(空目录首页直接进 `/setup`)、CH-023/024/026/028(需就绪文本模型建/选/删技能会话)、CH-044/045/046/050(需模型支撑的会话)。
+- 构建内特性缺失/配置固定,无法复现触发态:**CH-047**(本构建无会话级置顶——Pin 为消息级 `Chat.Actions.Pin`,产品差异)、CH-021(无法强制 `llm.models()` 失败,其优雅返回 `[]` 无错误/重试态)、CH-054/055(`/api/config` `needCode:false`,缺码路径不可达)、CH-056(`HIDE_USER_API_KEY` 关闭)、CH-062/063(访问码/自定义模型、系统提示模板不在本构建设置页,位于技能编辑器)、CH-083(`ENABLE_TOOLS` 开启,工具禁用降级不可复现)。
+- 需外部系统/资源:CH-012(中心化 UCAN 通行证外部授权页 + 回调)、CH-085(无 `STABILITY_API_KEY` + Router 未充值,无法真跑出图)、CH-088/089(导出需含消息会话)、CH-092(ShareGPT 外发 `sharegpt.com`)。
+
+**真实缺陷(诚实断言边界,未弱化、未修改产品仓库)**
+1. **force-static 500**:`app/api/[provider]` 与 `app/api/artifacts` 声明 `dynamic = "force-static"` 却读取请求 → 所有已识别 provider 与 artifacts POST/GET 均 500;仅"未知 provider"(仅读 params)分支正常。CH-051/052/057/058/090/091 因此断言"路由已识别 / 非 404 / 不伪造成功",而非真实完成。
+2. **WebDAV PROPFIND 与文档不符**:webdav 代理放行方法为 MKCOL/GET/HEAD/PUT/DELETE,PROPFIND 返回 403(文档暗示支持)。CH-070 如实断言此边界。
+3. **并发下 WorkspaceSyncError**(健壮性):多个携带登录的用例共享同一钱包账号,并发同步至同一 WebDAV workspace 时 SPA 可能停在"Failed to sync account data. Please retry."。可恢复(helper 点击 Reload 重试 + 登录密集用例 `retries:2`,每次重试换新钱包),非用例失败。

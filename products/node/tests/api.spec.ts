@@ -196,6 +196,75 @@ test('ND-API-004 ready returns 503 when the database is down', async () => {
   test.skip(true, 'cannot induce a DB outage non-destructively against the shared live instance');
 });
 
+test('ND-API-003 healthCheck alias mirrors /health (backward-compatible)', async () => {
+  skipIfNoService();
+  const env = envFor('node');
+  const api = env['NODE_API_URL'] ?? env['baseURL']!;
+  const ctx = await apiContext(api);
+  try {
+    const res = await ctx.get('/api/v1/public/healthCheck');
+    expect(res.status()).toBe(200);
+    const body = (await res.json()) as { code: number; data: { status: string; timestamp: number } };
+    expect(body.code).toBe(0);
+    expect(body.data.status).toBe('ok');
+    expect(typeof body.data.timestamp).toBe('number');
+  } finally {
+    await ctx.dispose();
+  }
+});
+
+test('ND-API-008 verify rejects a signature made with the wrong private key', async () => {
+  skipIfNoService();
+  const env = envFor('node');
+  const api = env['NODE_API_URL'] ?? env['baseURL']!;
+  // Address A obtains a challenge; wallet B (a different key) signs it. The
+  // recovered signer (B) will not match A, so verify must reject it.
+  const walletA = Wallet.createRandom();
+  const walletB = Wallet.createRandom();
+  const addressA = getAddress(walletA.address);
+  const ctx = await apiContext(api);
+  try {
+    const cRes = await ctx.post('/api/v1/public/auth/challenge', {
+      data: { address: addressA, chainId: 1 },
+    });
+    expect(cRes.status()).toBe(200);
+    const c = (await cRes.json()) as { data: { challenge: string; nonce: string } };
+
+    const signature = await walletB.signMessage(c.data.challenge);
+    const vRes = await ctx.post('/api/v1/public/auth/verify', {
+      data: { address: addressA, nonce: c.data.nonce, signature },
+    });
+    expect(vRes.status()).toBe(401);
+    const body = (await vRes.json()) as { message: string; data: unknown };
+    expect(body.message).toBe('Invalid signature');
+    expect(body.data).toBeNull(); // no token issued
+  } finally {
+    await ctx.dispose();
+  }
+});
+
+test('ND-API-010 verify with a missing field returns 400 Missing address, nonce or signature', async () => {
+  skipIfNoService();
+  const env = envFor('node');
+  const api = env['NODE_API_URL'] ?? env['baseURL']!;
+  const filler = { address: '0xcD05C9a21555319Ff0cF0A9C177aFe414B6Aa7B6', nonce: 'some-nonce-000000', signature: '0x' + 'ab'.repeat(65) };
+  const ctx = await apiContext(api);
+  try {
+    // Each request drops exactly one required field; all must fail identically.
+    for (const drop of ['address', 'nonce', 'signature'] as const) {
+      const data: Record<string, string> = { ...filler };
+      delete data[drop];
+      const res = await ctx.post('/api/v1/public/auth/verify', { data });
+      expect(res.status(), `missing ${drop}`).toBe(400);
+      expect(((await res.json()) as { message: string }).message).toBe(
+        'Missing address, nonce or signature',
+      );
+    }
+  } finally {
+    await ctx.dispose();
+  }
+});
+
 test('ND-API-006 challenge without an address returns 400 Missing address', async () => {
   skipIfNoService();
   const env = envFor('node');

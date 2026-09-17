@@ -34,6 +34,52 @@ function audienceFor(api: string): string {
   return new URL(api).origin;
 }
 
+test('ND-API-029 identity status reports the enabled capability surface', async () => {
+  skipIfNoService();
+  const env = envFor('node');
+  const api = env['NODE_API_URL'] ?? env['baseURL']!;
+
+  // Precondition is "logged in"; the status endpoints are read-only capability
+  // reports, so we attach a real JWT when a wallet is configured but the call
+  // succeeds regardless — assert the identity capability shape either way.
+  const headers: Record<string, string> = {};
+  if (env['NODE_WALLET_PRIVATE_KEY']) {
+    const tokens = await loginWithWallet(env['baseURL']!, env['NODE_WALLET_PRIVATE_KEY']!);
+    headers.Authorization = `Bearer ${tokens.token}`;
+  }
+  const ctx = await apiContext(api, headers);
+  try {
+    // Aggregate status → both TOTP and Passkey capability blocks.
+    const statusRes = await ctx.get('/api/v1/public/identity/status');
+    expect(statusRes.status()).toBe(200);
+    const status = (await statusRes.json()) as {
+      code: number;
+      data: {
+        totp: { enabled: boolean; ready: boolean };
+        passkey: { enabled: boolean; ready: boolean };
+      };
+    };
+    expect(status.code).toBe(0);
+    expect(typeof status.data.totp.enabled).toBe('boolean');
+    expect(typeof status.data.totp.ready).toBe('boolean');
+    expect(typeof status.data.passkey.enabled).toBe('boolean');
+    expect(typeof status.data.passkey.ready).toBe('boolean');
+
+    // Dedicated TOTP status → algorithm/digits/period descriptor.
+    const totpRes = await ctx.get('/api/v1/public/identity/totp/status');
+    expect(totpRes.status()).toBe(200);
+    const totp = (await totpRes.json()) as {
+      data: { enabled: boolean; digits: number; period: number; algorithm: string };
+    };
+    expect(typeof totp.data.enabled).toBe('boolean');
+    expect(totp.data.digits).toBe(6);
+    expect(totp.data.period).toBe(30);
+    expect(totp.data.algorithm).toBe('SHA1');
+  } finally {
+    await ctx.dispose();
+  }
+});
+
 test('ND-API-030 TOTP setup → confirm → verify → revoke closed loop', async () => {
   skipIfNoService();
   const env = envFor('node');

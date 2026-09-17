@@ -46,8 +46,8 @@ async function serveBlankDapp(context: BrowserContext) {
   await context.route(`${DAPP_ORIGIN}**`, (route) =>
     route.fulfill({
       status: 200,
-      contentType: 'text/html',
-      body: '<!doctype html><html><head><title>e2e dApp</title></head><body></body></html>',
+      contentType: 'text/html; charset=utf-8',
+      body: '<!doctype html><html><head><meta charset="utf-8"><title>Wallet 协议测试 DApp</title></head><body><main><h1>YeYing Wallet 协议测试 DApp</h1><p>此页面用于验证 Wallet Provider 协议和审批流程。</p><p>当前测试通过 window.ethereum 发起请求，页面本身不包含业务逻辑。</p></main></body></html>',
     }),
   );
 }

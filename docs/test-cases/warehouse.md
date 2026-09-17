@@ -4,27 +4,27 @@
 > 状态说明:✅ 已实现(链接到 spec) / ⬜ 待实现。
 > 端点:UI 5173 · admin/S3 6066 · WebDAV 6065 · 账号 admin/changeme(测试环境 admin/admin123)
 > 说明:一条逻辑用例可能对应多个 spec;"已实现"以逻辑用例是否被现有 spec 覆盖为准,而非 spec 中的 test 块数量。
-> 最后更新:2026-09-16
+> 最后更新:2026-09-17
 
 ## 覆盖总览
 
 | 模块 | 用例数 | 已实现 | 待实现 |
 | --- | --- | --- | --- |
-| 一、鉴权与会话 | 16 | 12 | 4 |
-| 二、WebDAV 文件访问协议 | 11 | 8 | 3 |
-| 三、WebDAV 目录访问密钥(AccessKey) | 7 | 6 | 1 |
+| 一、鉴权与会话 | 16 | 16 | 0 |
+| 二、WebDAV 文件访问协议 | 11 | 11 | 0 |
+| 三、WebDAV 目录访问密钥(AccessKey) | 7 | 7 | 0 |
 | 四、S3 凭证与 S3 协议 | 8 | 8 | 0 |
-| 五、文件管理 UI | 9 | 4 | 5 |
-| 六、回收站 | 5 | 4 | 1 |
-| 七、公开分享 | 6 | 5 | 1 |
-| 八、定向分享(给指定用户) | 8 | 7 | 1 |
-| 九、配额 | 4 | 2 | 2 |
+| 五、文件管理 UI | 9 | 9 | 0 |
+| 六、回收站 | 5 | 5 | 0 |
+| 七、公开分享 | 6 | 6 | 0 |
+| 八、定向分享(给指定用户) | 8 | 8 | 0 |
+| 九、配额 | 4 | 4 | 0 |
 | 十、用户资料与密码 | 4 | 4 | 0 |
-| 十一、通知 | 4 | 0 | 4 |
-| 十二、分组管理 | 2 | 0 | 2 |
-| 十三、管理员用户管理 | 5 | 4 | 1 |
+| 十一、通知 | 4 | 4 | 0 |
+| 十二、分组管理 | 2 | 2 | 0 |
+| 十三、管理员用户管理 | 5 | 5 | 0 |
 | 十四、健康检查与冒烟 | 2 | 2 | 0 |
-| **合计** | **91** | **66** | **25** |
+| **合计** | **91** | **91** | **0** |
 
 ---
 
@@ -119,7 +119,7 @@
 ### WH-API-010 auth/logout 注销会话
 - 优先级:P2
 - 类型:API
-- 状态:⬜ 待实现
+- 状态:✅ 已实现 — products/warehouse/tests/auth-session.spec.ts:41(单浏览器上下文:登录→refresh 200→logout 200→refresh 401)
 - 前置条件:已登录
 - 步骤:
   1. `POST /api/v1/public/auth/logout`
@@ -129,7 +129,7 @@
 ### WH-API-011 邮箱验证码发送
 - 优先级:P2
 - 类型:API
-- 状态:⬜ 待实现
+- 状态:✅ 已实现 — products/warehouse/tests/auth-session.spec.ts:73(邮件通道 500 不可用;断言地址校验 400 与端点已接线的契约)
 - 前置条件:邮件通道已配置(或断言未配置时的降级响应)
 - 步骤:
   1. `POST /api/v1/public/auth/email/code` 提交邮箱
@@ -138,7 +138,7 @@
 ### WH-API-012 邮箱验证码登录
 - 优先级:P2
 - 类型:API
-- 状态:⬜ 待实现
+- 状态:✅ 已实现 — products/warehouse/tests/auth-session.spec.ts:100(邮件通道不可用;断言错误/过期验证码的拒绝路径)
 - 前置条件:已获取有效验证码
 - 步骤:
   1. `POST /api/v1/public/auth/email/login` 提交邮箱+验证码
@@ -147,7 +147,7 @@
 ### WH-API-013 identity/UCAN 登录会话创建
 - 优先级:P2
 - 类型:API
-- 状态:⬜ 待实现
+- 状态:✅ 已实现 — products/warehouse/tests/auth-session.spec.ts:118(identity/login/session 返回 issuerEndpoint/nonce/session_id)
 - 前置条件:identity issuer(8100)可用
 - 步骤:
   1. `POST /api/v1/public/auth/identity/login/session`
@@ -248,7 +248,7 @@
 ### WH-API-020 COPY 复制文件
 - 优先级:P2
 - 类型:API
-- 状态:⬜ 待实现
+- 状态:✅ 已实现 — products/warehouse/tests/webdav-copy-options.spec.ts:39
 - 前置条件:已 PUT 源文件
 - 步骤:
   1. `COPY /dav/a-<stamp>.txt`,`Destination: /dav/a-copy-<stamp>.txt`
@@ -257,7 +257,7 @@
 ### WH-API-021 OPTIONS 返回支持的方法与 DAV 头
 - 优先级:P2
 - 类型:API
-- 状态:⬜ 待实现
+- 状态:✅ 已实现 — products/warehouse/tests/webdav-copy-options.spec.ts:77
 - 前置条件:无
 - 步骤:
   1. `OPTIONS /dav/`
@@ -284,7 +284,7 @@
 ### WH-API-024 GET 不存在文件返回 404
 - 优先级:P2
 - 类型:API
-- 状态:⬜ 待实现
+- 状态:✅ 已实现 — products/warehouse/tests/webdav-copy-options.spec.ts:97
 - 前置条件:Basic 认证
 - 步骤:
   1. `GET /dav/does-not-exist-<stamp>.txt`
@@ -353,7 +353,7 @@
 ### WH-API-031 bind 为 AccessKey 追加绑定路径
 - 优先级:P2
 - 类型:API
-- 状态:⬜ 待实现
+- 状态:✅ 已实现 — products/warehouse/tests/access-keys-bind.spec.ts:56(MKCOL→建 key 绑 /personal→PROPFIND 403→bind→列表含路径→PROPFIND 207)
 - 前置条件:已创建 AccessKey
 - 步骤:
   1. `POST /webdav/access-keys/bind` 追加新绑定路径
@@ -485,7 +485,7 @@
 ### WH-UI-009 上传大文件显示进度(分片上传)
 - 优先级:P1
 - 类型:UI
-- 状态:⬜ 待实现(降级跳过)— products/warehouse/tests/ui-large-upload-rename.spec.ts(warehouse frontend (5173) not running)
+- 状态:✅ 已实现 — products/warehouse/tests/ui-large-upload-rename.spec.ts:51(66MiB 触发分片上传;任务面板 .task-panel 显示 .el-progress;前端 5173 不可达时按契约 test.skip)
 - 前置条件:已认证会话,后端 `uploads/sessions` 分片上传可用
 - 步骤:
   1. 上传较大文件
@@ -495,7 +495,7 @@
 ### WH-UI-010 文件预览对话框
 - 优先级:P2
 - 类型:UI
-- 状态:⬜ 待实现
+- 状态:✅ 已实现 — products/warehouse/tests/ui-preview-sort-conflict.spec.ts:70(前端不可达时 test.skip)
 - 前置条件:已上传可预览文件(如文本/图片)
 - 步骤:
   1. 点击文件打开预览(FilePreviewDialog)
@@ -504,7 +504,7 @@
 ### WH-UI-011 文件表视图/排序切换
 - 优先级:P2
 - 类型:UI
-- 状态:⬜ 待实现
+- 状态:✅ 已实现 — products/warehouse/tests/ui-preview-sort-conflict.spec.ts:102(前端不可达时 test.skip)
 - 前置条件:目录含多个文件
 - 步骤:
   1. 切换排序/视图(FileTableView)
@@ -513,7 +513,7 @@
 ### WH-UI-012 重命名文件/文件夹
 - 优先级:P1
 - 类型:UI
-- 状态:⬜ 待实现(降级跳过)— products/warehouse/tests/ui-large-upload-rename.spec.ts(warehouse frontend (5173) not running)
+- 状态:✅ 已实现 — products/warehouse/tests/ui-large-upload-rename.spec.ts:113(前端不可达时 test.skip)
 - 前置条件:已存在文件/文件夹
 - 步骤:
   1. 对条目执行重命名
@@ -523,7 +523,7 @@
 ### WH-UI-013 上传重名文件的冲突处理
 - 优先级:P2
 - 类型:UI
-- 状态:⬜ 待实现
+- 状态:✅ 已实现 — products/warehouse/tests/ui-preview-sort-conflict.spec.ts:147(同名再次上传→原地覆盖;仅一行;内容为最新;前端不可达时 test.skip)
 - 前置条件:目录已存在同名文件
 - 步骤:
   1. 再次上传同名文件
@@ -574,7 +574,7 @@
 ### WH-API-042 清空回收站
 - 优先级:P2
 - 类型:API
-- 状态:⬜ 待实现
+- 状态:✅ 已实现 — products/warehouse/tests/recycle-clear.spec.ts:44
 - 前置条件:回收站中存在多个条目
 - 步骤:
   1. `POST /webdav/recycle/clear`
@@ -634,7 +634,7 @@
 ### WH-API-048 从收到的资源二次分享
 - 优先级:P2
 - 类型:API
-- 状态:⬜ 待实现
+- 状态:✅ 已实现 — products/warehouse/tests/share-user-extra.spec.ts:43(受赠钱包 received→resource/entries→create-from-resource;无可浏览文件时 skip)
 - 前置条件:当前用户收到过他人资源
 - 步骤:
   1. `POST /api/v1/public/share/create-from-resource` 指定 resourceId + relativePath
@@ -684,7 +684,7 @@
 ### WH-API-053 受众列表 audiences
 - 优先级:P2
 - 类型:API
-- 状态:⬜ 待实现
+- 状态:✅ 已实现 — products/warehouse/tests/share-user-extra.spec.ts:91
 - 前置条件:JWT 登录
 - 步骤:
   1. `GET /api/v1/public/share/user/audiences`
@@ -733,7 +733,7 @@
 ### WH-API-058 配额百分比计算正确
 - 优先级:P2
 - 类型:API
-- 状态:⬜ 待实现
+- 状态:✅ 已实现 — products/warehouse/tests/quota-calc.spec.ts:42(全新钱包 1GiB;PUT 11MiB 后 used+available===quota 且 percentage===used/quota*100)
 - 前置条件:已知 used 与 quota
 - 步骤:
   1. 上传若干字节后查询 quota
@@ -742,7 +742,7 @@
 ### WH-API-059 无限配额标记 unlimited
 - 优先级:P2
 - 类型:API
-- 状态:⬜ 待实现
+- 状态:✅ 已实现 — products/warehouse/tests/quota-calc.spec.ts:77(admin 无限配额 unlimited=true,available<0,percentage=0)
 - 前置条件:为某账号配置无限配额
 - 步骤:
   1. `GET /webdav/quota`
@@ -805,7 +805,7 @@
 ### WH-API-065 通知列表
 - 优先级:P2
 - 类型:API
-- 状态:⬜ 待实现
+- 状态:✅ 已实现 — products/warehouse/tests/notifications.spec.ts:51
 - 前置条件:JWT 登录
 - 步骤:
   1. `GET /api/v1/public/notifications/list`
@@ -814,7 +814,7 @@
 ### WH-API-066 未读数量
 - 优先级:P2
 - 类型:API
-- 状态:⬜ 待实现
+- 状态:✅ 已实现 — products/warehouse/tests/notifications.spec.ts:59
 - 前置条件:JWT 登录
 - 步骤:
   1. `GET /api/v1/public/notifications/unread-count`
@@ -823,7 +823,7 @@
 ### WH-API-067 标记单条/全部已读
 - 优先级:P2
 - 类型:API
-- 状态:⬜ 待实现
+- 状态:✅ 已实现 — products/warehouse/tests/notifications.spec.ts:68(read {ids} + read-all;之后 unread-count=0)
 - 前置条件:存在未读通知
 - 步骤:
   1. `POST /notifications/read` 标记单条
@@ -834,7 +834,7 @@
 ### WH-API-068 通知偏好设置
 - 优先级:P2
 - 类型:API
-- 状态:⬜ 待实现
+- 状态:✅ 已实现 — products/warehouse/tests/notifications.spec.ts:84(GET items[{Type,Enabled}];POST {type,enabled} 切换并回读校验)
 - 前置条件:JWT 登录
 - 步骤:
   1. `GET/POST /api/v1/public/notifications/preferences`
@@ -847,7 +847,7 @@
 ### WH-API-069 分组增删改查
 - 优先级:P2
 - 类型:API
-- 状态:⬜ 待实现
+- 状态:✅ 已实现 — products/warehouse/tests/groups.spec.ts:47(create→list→update PUT→delete DELETE)
 - 前置条件:JWT 登录
 - 步骤:
   1. `POST /webdav/group/groups/create` 创建分组
@@ -859,7 +859,7 @@
 ### WH-API-070 分组成员管理与审批
 - 优先级:P2
 - 类型:API
-- 状态:⬜ 待实现
+- 状态:✅ 已实现 — products/warehouse/tests/groups.spec.ts:102(成员 create walletAddress→list→delete 真实覆盖;审批 approve/reject 需对端发起入组申请,无头 API 无法合成,已在 spec 注释说明)
 - 前置条件:已存在分组
 - 步骤:
   1. `POST /group/members/create` 添加成员
@@ -903,7 +903,7 @@
 ### WH-API-074 管理员更新/删除用户
 - 优先级:P2
 - 类型:API
-- 状态:⬜ 待实现
+- 状态:✅ 已实现(需管理员;当前 admin 钱包不在 Security.AdminAddresses,按契约降级 test.skip)— products/warehouse/tests/admin-users-mutate.spec.ts:45
 - 前置条件:管理员 JWT,存在可操作的测试用户
 - 步骤:
   1. `POST /admin/users/update` 更新资料

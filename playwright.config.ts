@@ -65,13 +65,22 @@ const projects: Project[] = products.map((product: ProductName) => ({
   testMatch: /.*\.spec\.ts$/,
   outputDir: `results/${product}`,
   // Project (DooTask) is the only suite that writes to a single shared MySQL
-  // instance behind PHP-FPM. Under full 5-worker parallelism the backend
-  // saturates and individual requests can take well over the default 10s
-  // actionTimeout — the requests still succeed, just slowly (they pass cleanly
-  // at --workers=2 and in isolation). Give this suite generous per-request and
-  // per-test budgets so a slow-but-correct response is awaited rather than
-  // timed out, and one retry to absorb the rare total stall. This masks no real
-  // defect: the assertions are unchanged, only the backend is contended.
+  // instance behind Swoole. Under the default per-CPU worker count (~5) the
+  // backend saturates and individual write/UI-heavy requests can take well over
+  // the default 10s actionTimeout — the requests still succeed, just slowly. The
+  // budgets below (60s test / 30s action / 45s nav + one retry) absorb a
+  // slow-but-correct response instead of timing it out.
+  //
+  // NOTE ON PARALLELISM: as the suite grew (now ~128 cases) the default 5-worker
+  // run tips into non-deterministic client-side TimeoutErrors on a rotating set
+  // of write-heavy specs — pure contention, not a defect (backend stays 200, no
+  // OOM/500). Playwright has no per-project worker cap, and we don't want to
+  // throttle the fast independent suites globally, so run THIS suite at reduced
+  // parallelism for a deterministic 0-fail:
+  //     PWWORKERS=2 npx playwright test --project=project
+  // Verified: 136 passed / 8 skipped / 0 failed at --workers=2 (0 flaky), vs
+  // ~6 failed + ~10 flaky at the 5-worker default. Assertions are identical
+  // either way; only the achievable parallelism differs.
   ...(product === 'project'
     ? { retries: process.env.CI ? 2 : 1, timeout: 60_000 }
     : {}),

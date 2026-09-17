@@ -32,9 +32,13 @@ test('navigation surfaces at least one link or menu entry', async ({ page }) => 
   await page.goto('/');
   // SPA mounts may not have rendered every header link to "visible"
   // yet. Assert DOM-attached, which matches what a user perceives:
-  // an entry to navigate to.
-  const entries = page.locator('a[href], [role="link"], [role="menuitem"]');
-  expect(await entries.count()).toBeGreaterThan(0);
+  // an entry to navigate to. The unauthenticated landing is the wallet
+  // auth gate, which presents buttons rather than anchor links, so count
+  // any navigable/interactive entry and poll while the SPA mounts.
+  const entries = page.locator(
+    'a[href], [role="link"], [role="menuitem"], button, [role="button"]',
+  );
+  await expect.poll(() => entries.count(), { timeout: 15_000 }).toBeGreaterThan(0);
 });
 
 test('auth or wallet-connect affordance is discoverable', async ({ page }) => {

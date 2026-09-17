@@ -78,3 +78,64 @@ test('my-apps view shows creator/applicant tabs and the create button', async ({
   await expect(page.getByRole('button', { name: '创建应用' })).toBeVisible();
   await recorder.step(page, '我的应用（我创建的 / 我申请的）');
 });
+
+test('ND-UI-009 market keyword search drives the grid and shows an empty state', async ({
+  page,
+  recorder,
+}) => {
+  skipIfNoService();
+  const env = envFor('node');
+  test.skip(!env['NODE_WALLET_PRIVATE_KEY'], 'NODE_WALLET_PRIVATE_KEY not configured');
+  const baseURL = baseURLFor('node')!;
+
+  await page.goto(baseURL, { waitUntil: 'domcontentloaded' });
+  await seedWalletSession(page, baseURL, env['NODE_WALLET_PRIVATE_KEY']!);
+
+  await page.goto(`${baseURL}/market`, { waitUntil: 'domcontentloaded' });
+  await expect(page.locator('.app-center')).toBeVisible({ timeout: 15_000 });
+
+  const cards = page.locator('.tab.tab-market-clickable');
+  const initialCount = await cards.count();
+  await recorder.step(page, '市场默认列表');
+
+  // Typing a keyword re-runs the search (POST /applications/search) with that
+  // term and re-renders the grid from the filtered result — a nonsense term
+  // that no app can match, so the grid must collapse to the empty state.
+  const noMatch = `zzz-no-such-app-${Date.now()}`;
+  const searchInput = page.locator('.market-search input');
+  await expect(searchInput).toBeVisible({ timeout: 10_000 });
+  await searchInput.fill(noMatch);
+
+  const [emptyRes] = await Promise.all([
+    page.waitForResponse(
+      (r) =>
+        new URL(r.url()).pathname === '/api/v1/public/applications/search' &&
+        r.request().method() === 'POST' &&
+        (r.request().postData() ?? '').includes(noMatch),
+      { timeout: 30_000 },
+    ),
+    searchInput.press('Enter'),
+  ]);
+  expect(emptyRes.status()).toBe(200);
+  await expect(page).toHaveURL(new RegExp(`keyword=${noMatch}`));
+  // Empty state: the grid container still renders, but no card matches.
+  await expect(page.locator('.app-center')).toBeVisible();
+  await expect(cards).toHaveCount(0);
+  await recorder.step(page, '无匹配空态');
+
+  // Clearing the keyword restores the unfiltered result set.
+  await searchInput.fill('');
+  const [restoreRes] = await Promise.all([
+    page.waitForResponse(
+      (r) =>
+        new URL(r.url()).pathname === '/api/v1/public/applications/search' &&
+        r.request().method() === 'POST',
+      { timeout: 30_000 },
+    ),
+    searchInput.press('Enter'),
+  ]);
+  expect(restoreRes.status()).toBe(200);
+  await expect(page.locator('.app-center')).toBeVisible();
+  await expect(cards).toHaveCount(initialCount);
+  await recorder.step(page, '清空关键词恢复列表');
+});

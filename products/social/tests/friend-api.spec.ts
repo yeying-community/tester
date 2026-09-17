@@ -44,7 +44,33 @@ test('SO-API-031 get single friend info', async () => {
   }
 });
 
-// SO-API-032 (P1) — delete a friend; the relationship is soft-deleted.
+// SO-API-033 (P2) — toggle the per-friend do-not-disturb flag; it round-trips
+// through /friend/find (FriendVO.isDnd).
+test('SO-API-033 friend do-not-disturb toggle', async () => {
+  skipIfNoStack();
+  const A = await newSiweIdentity(platformURL()!, identityURL()!);
+  const B = await newSiweIdentity(platformURL()!, identityURL()!);
+  await befriend(platformURL()!, A, B);
+
+  const ctx = await platformCtx(platformURL()!, A.login.accessToken);
+  try {
+    type FriendVO = { id: number; isDnd: boolean };
+    const readDnd = async () =>
+      ((await (await ctx.get(`/friend/find/${B.userId}`)).json()) as Envelope<FriendVO>).data.isDnd;
+
+    // Turn DND on.
+    const on = await ctx.put('/friend/dnd', { data: { friendId: B.userId, isDnd: 1 } });
+    expect(((await on.json()) as Envelope<null>).code).toBe(200);
+    expect(await readDnd()).toBe(true);
+
+    // Turn DND off again.
+    const off = await ctx.put('/friend/dnd', { data: { friendId: B.userId, isDnd: 0 } });
+    expect(((await off.json()) as Envelope<null>).code).toBe(200);
+    expect(await readDnd()).toBe(false);
+  } finally {
+    await ctx.dispose();
+  }
+});
 test('SO-API-032 delete friend', async () => {
   skipIfNoStack();
   const A = await newSiweIdentity(platformURL()!, identityURL()!);

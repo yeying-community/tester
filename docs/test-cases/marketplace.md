@@ -4,21 +4,21 @@
 > 状态说明:✅ 已实现(链接到 spec) / ⬜ 待实现。
 > 端点:无实时 UI · 从磁盘读取索引(MARKETPLACE_REPO_PATH)
 > 说明:本产品为数据校验型,测试从磁盘读取仓库根 `index.json` / `packages.json` 及 `tools/`、`schemas/` 下的索引与 schema 文件;仅当提供 `MARKETPLACE_BASE_URL` 时改走静态 URL。一条逻辑用例可能对应多个 spec;"已实现"以逻辑用例是否被现有 spec 覆盖为准,而非 spec 中的 test 块数量。
-> 最后更新:2026-09-16
+> 最后更新:2026-09-17
 
 ## 覆盖总览
 
 | 模块 | 用例数 | 已实现 | 待实现 |
 | --- | --- | --- | --- |
-| 一、文件与解析 | 7 | 3 | 4 |
-| 二、Schema 校验:技能包 | 13 | 0 | 13 |
-| 三、Schema 校验:Tool Server 包 | 7 | 0 | 7 |
-| 四、条目唯一性与一致性 | 10 | 1 | 9 |
-| 五、引用与资源完整性 | 8 | 0 | 8 |
-| 六、分类、标签与排序 | 5 | 0 | 5 |
-| 七、空值与异常数据处理 | 5 | 0 | 5 |
-| 八、可选静态 URL 与冒烟 | 4 | 1 | 3 |
-| **合计** | **59** | **5** | **54** |
+| 一、文件与解析 | 7 | 7 | 0 |
+| 二、Schema 校验:技能包 | 13 | 13 | 0 |
+| 三、Schema 校验:Tool Server 包 | 7 | 7 | 0 |
+| 四、条目唯一性与一致性 | 10 | 10 | 0 |
+| 五、引用与资源完整性 | 8 | 8 | 0 |
+| 六、分类、标签与排序 | 5 | 5 | 0 |
+| 七、空值与异常数据处理 | 5 | 5 | 0 |
+| 八、可选静态 URL 与冒烟 | 4 | 4 | 0 |
+| **合计** | **59** | **59** | **0** |
 
 ---
 
@@ -55,7 +55,7 @@
 ### MP-DATA-004 tools/index.json 存在且为合法 JSON 数组
 - 优先级:P1
 - 类型:DATA
-- 状态:⬜ 待实现
+- 状态:✅ 已实现 — products/marketplace/tests/data.spec.ts:35
 - 前置条件:仓库存在 `tools/index.json`(工具轻量索引)
 - 步骤:
   1. `existsSync` + `JSON.parse` 读取 `tools/index.json`
@@ -65,7 +65,7 @@
 ### MP-DATA-005 tools/packages.json 存在且为合法 JSON 数组
 - 优先级:P1
 - 类型:DATA
-- 状态:⬜ 待实现
+- 状态:✅ 已实现 — products/marketplace/tests/data.spec.ts:42
 - 前置条件:仓库存在 `tools/packages.json`(Tool Server 完整包列表)
 - 步骤:
   1. `JSON.parse` 读取 `tools/packages.json`
@@ -75,7 +75,7 @@
 ### MP-DATA-006 schemas 目录含两个 JSON Schema 且合法
 - 优先级:P1
 - 类型:DATA
-- 状态:⬜ 待实现
+- 状态:✅ 已实现 — products/marketplace/tests/data.spec.ts:48
 - 前置条件:仓库存在 `schemas/`
 - 步骤:
   1. 读取并解析 `schemas/skill.schema.json`、`schemas/tool-server.schema.json`
@@ -85,7 +85,7 @@
 ### MP-DATA-007 templates 起始模板存在且为合法 JSON
 - 优先级:P2
 - 类型:DATA
-- 状态:⬜ 待实现
+- 状态:✅ 已实现 — products/marketplace/tests/data.spec.ts:58
 - 前置条件:仓库存在 `templates/`
 - 步骤:
   1. 解析 `templates/skill.json`、`templates/tool-server.json`
@@ -100,7 +100,7 @@
 ### MP-DATA-008 技能包含全部必填字段
 - 优先级:P0
 - 类型:DATA
-- 状态:⬜ 待实现
+- 状态:✅ 已实现 — products/marketplace/tests/data.spec.ts:75
 - 前置条件:遍历 `packages.json` 的 `cn` 与 `en` 两组内每个技能包
 - 步骤:
   1. 对每个技能包断言存在 `schemaVersion`、`id`、`version`、`name`、`launch`、`instructions`
@@ -109,7 +109,7 @@
 ### MP-DATA-009 schemaVersion 恒为 "1.0"
 - 优先级:P1
 - 类型:DATA
-- 状态:⬜ 待实现
+- 状态:✅ 已实现 — products/marketplace/tests/data.spec.ts:84
 - 前置条件:遍历所有技能包
 - 步骤:
   1. 断言 `schemaVersion === "1.0"`(schema `const`)
@@ -118,7 +118,7 @@
 ### MP-DATA-010 id 符合 kebab-case 正则
 - 优先级:P0
 - 类型:DATA
-- 状态:⬜ 待实现
+- 状态:✅ 已实现 — products/marketplace/tests/data.spec.ts:90
 - 前置条件:遍历所有技能包
 - 步骤:
   1. 用 `^[a-z0-9][a-z0-9-]*[a-z0-9]$` 校验 `id`
@@ -127,7 +127,7 @@
 ### MP-DATA-011 version 符合 semver 正则
 - 优先级:P0
 - 类型:DATA
-- 状态:⬜ 待实现
+- 状态:✅ 已实现 — products/marketplace/tests/data.spec.ts:96
 - 前置条件:遍历所有技能包
 - 步骤:
   1. 用 `^\d+\.\d+\.\d+(-[a-zA-Z0-9.-]+)?$` 校验 `version`
@@ -136,7 +136,7 @@
 ### MP-DATA-012 name / description 为 localizedText
 - 优先级:P1
 - 类型:DATA
-- 状态:⬜ 待实现
+- 状态:✅ 已实现 — products/marketplace/tests/data.spec.ts:102
 - 前置条件:遍历所有技能包
 - 步骤:
   1. 断言 `name` 为非空字符串,或为对象且至少含 `cn`/`en` 之一
@@ -146,7 +146,7 @@
 ### MP-DATA-013 launch 满足 oneOf 约束
 - 优先级:P1
 - 类型:DATA
-- 状态:⬜ 待实现
+- 状态:✅ 已实现 — products/marketplace/tests/data.spec.ts:111
 - 前置条件:遍历所有技能包
 - 步骤:
   1. 断言 `launch.type ∈ {chat, workspace, external}`
@@ -156,7 +156,7 @@
 ### MP-DATA-014 instructions 满足 oneOf 约束
 - 优先级:P0
 - 类型:DATA
-- 状态:⬜ 待实现
+- 状态:✅ 已实现 — products/marketplace/tests/data.spec.ts:129
 - 前置条件:遍历所有技能包
 - 步骤:
   1. 断言 `instructions.type` 为 `inline`(含非空 `content`)或 `file`(含非空 `path`)
@@ -165,7 +165,7 @@
 ### MP-DATA-015 icon 结构合法
 - 优先级:P2
 - 类型:DATA
-- 状态:⬜ 待实现
+- 状态:✅ 已实现 — products/marketplace/tests/data.spec.ts:144
 - 前置条件:技能包含可选 `icon`
 - 步骤:
   1. 断言 `icon.type ∈ {emoji, builtin, url}` 且含 `value`
@@ -174,7 +174,7 @@
 ### MP-DATA-016 visibility.scope 属枚举
 - 优先级:P2
 - 类型:DATA
-- 状态:⬜ 待实现
+- 状态:✅ 已实现 — products/marketplace/tests/data.spec.ts:153
 - 前置条件:技能包含可选 `visibility`
 - 步骤:
   1. 断言 `visibility.scope ∈ {private, organization, public}`
@@ -183,7 +183,7 @@
 ### MP-DATA-017 permissions 含必填四字段
 - 优先级:P1
 - 类型:DATA
-- 状态:⬜ 待实现
+- 状态:✅ 已实现 — products/marketplace/tests/data.spec.ts:162
 - 前置条件:技能包含 `permissions`
 - 步骤:
   1. 断言同时存在 `network`、`filesystem`、`wallet`、`externalTools`
@@ -193,7 +193,7 @@
 ### MP-DATA-018 release.status / review 属枚举
 - 优先级:P1
 - 类型:DATA
-- 状态:⬜ 待实现
+- 状态:✅ 已实现 — products/marketplace/tests/data.spec.ts:173
 - 前置条件:技能包含 `release`
 - 步骤:
   1. 断言 `status ∈ {draft, published, deprecated, removed}`
@@ -203,7 +203,7 @@
 ### MP-DATA-019 toolServers[] 结构与 transport 枚举
 - 优先级:P1
 - 类型:DATA
-- 状态:⬜ 待实现
+- 状态:✅ 已实现 — products/marketplace/tests/data.spec.ts:187
 - 前置条件:技能包含 `toolServers`
 - 步骤:
   1. 对每项断言含 `id`、`name`、`transport`、`required`
@@ -213,7 +213,7 @@
 ### MP-DATA-020 技能包无未知字段(additionalProperties=false)
 - 优先级:P2
 - 类型:DATA
-- 状态:⬜ 待实现
+- 状态:✅ 已实现 — products/marketplace/tests/data.spec.ts:198
 - 前置条件:遍历所有技能包
 - 步骤:
   1. 用完整 skill.schema 做严格校验(顶层 `additionalProperties:false`)
@@ -228,7 +228,7 @@
 ### MP-DATA-021 Tool Server 含全部必填字段
 - 优先级:P0
 - 类型:DATA
-- 状态:⬜ 待实现
+- 状态:✅ 已实现 — products/marketplace/tests/data.spec.ts:209
 - 前置条件:遍历 `tools/packages.json` 每个包
 - 步骤:
   1. 断言存在 `schemaVersion`、`id`、`version`、`name`、`description`、`repo`、`tags`、`command`、`baseArgs`、`configurable`、`release`
@@ -237,7 +237,7 @@
 ### MP-DATA-022 Tool Server id 符合 kebab-case
 - 优先级:P1
 - 类型:DATA
-- 状态:⬜ 待实现
+- 状态:✅ 已实现 — products/marketplace/tests/data.spec.ts:218
 - 前置条件:遍历所有 Tool Server 包
 - 步骤:
   1. 用 `^[a-z0-9][a-z0-9-]*[a-z0-9]$` 校验 `id`
@@ -246,7 +246,7 @@
 ### MP-DATA-023 configurable 为布尔
 - 优先级:P2
 - 类型:DATA
-- 状态:⬜ 待实现
+- 状态:✅ 已实现 — products/marketplace/tests/data.spec.ts:224
 - 前置条件:遍历所有 Tool Server 包
 - 步骤:
   1. 断言 `typeof configurable === "boolean"`
@@ -255,7 +255,7 @@
 ### MP-DATA-024 release.status / review 属 Tool Server 枚举
 - 优先级:P1
 - 类型:DATA
-- 状态:⬜ 待实现
+- 状态:✅ 已实现 — products/marketplace/tests/data.spec.ts:230
 - 前置条件:遍历所有 Tool Server 包
 - 步骤:
   1. 断言 `status ∈ {published, draft, removed}`(注意与技能枚举不同,无 `deprecated`)
@@ -265,7 +265,7 @@
 ### MP-DATA-025 command 非空且 baseArgs 为字符串数组
 - 优先级:P1
 - 类型:DATA
-- 状态:⬜ 待实现
+- 状态:✅ 已实现 — products/marketplace/tests/data.spec.ts:239
 - 前置条件:遍历所有 Tool Server 包
 - 步骤:
   1. 断言 `command` 为非空字符串(如 `npx`、`uvx`)
@@ -275,7 +275,7 @@
 ### MP-DATA-026 configurable=true 时提供 configSchema
 - 优先级:P2
 - 类型:DATA
-- 状态:⬜ 待实现
+- 状态:✅ 已实现 — products/marketplace/tests/data.spec.ts:248
 - 前置条件:某 Tool Server `configurable === true`
 - 步骤:
   1. 断言存在 `configSchema.properties` 且描述了必填配置项
@@ -284,7 +284,7 @@
 ### MP-DATA-027 Tool Server 无未知字段
 - 优先级:P2
 - 类型:DATA
-- 状态:⬜ 待实现
+- 状态:✅ 已实现 — products/marketplace/tests/data.spec.ts:257
 - 前置条件:遍历所有 Tool Server 包
 - 步骤:
   1. 用 tool-server.schema 做严格校验(`additionalProperties:false`)
@@ -306,7 +306,7 @@
 ### MP-DATA-029 index 条目含 version/path/release
 - 优先级:P1
 - 类型:DATA
-- 状态:⬜ 待实现
+- 状态:✅ 已实现 — products/marketplace/tests/data.spec.ts:268
 - 前置条件:index.json 已解析
 - 步骤:
   1. 遍历每条,断言含 `version`(字符串)、`path`(字符串)、`release`(对象含 status)
@@ -315,7 +315,7 @@
 ### MP-DATA-030 (id, lang) 组合唯一
 - 优先级:P0
 - 类型:DATA
-- 状态:⬜ 待实现
+- 状态:✅ 已实现 — products/marketplace/tests/data.spec.ts:277
 - 前置条件:index.json 已解析
 - 步骤:
   1. 以 `lang + ":" + id` 为键构建集合,统计重复
@@ -324,7 +324,7 @@
 ### MP-DATA-031 同一 lang 内 id 不重复
 - 优先级:P0
 - 类型:DATA
-- 状态:⬜ 待实现
+- 状态:✅ 已实现 — products/marketplace/tests/data.spec.ts:286
 - 前置条件:index.json 已解析
 - 步骤:
   1. 分别在 `cn`、`en` 子集内检查 id 是否重复
@@ -333,7 +333,7 @@
 ### MP-DATA-032 lang 取值属 {cn, en}
 - 优先级:P1
 - 类型:DATA
-- 状态:⬜ 待实现
+- 状态:✅ 已实现 — products/marketplace/tests/data.spec.ts:295
 - 前置条件:index.json 已解析
 - 步骤:
   1. 遍历每条断言 `lang ∈ {cn, en}`
@@ -342,7 +342,7 @@
 ### MP-DATA-033 index 的 version 符合 semver
 - 优先级:P1
 - 类型:DATA
-- 状态:⬜ 待实现
+- 状态:✅ 已实现 — products/marketplace/tests/data.spec.ts:301
 - 前置条件:index.json 已解析
 - 步骤:
   1. 用 semver 正则校验每条 `version`
@@ -351,7 +351,7 @@
 ### MP-DATA-034 index.id 与源文件父目录名一致
 - 优先级:P1
 - 类型:DATA
-- 状态:⬜ 待实现
+- 状态:✅ 已实现 — products/marketplace/tests/data.spec.ts:307
 - 前置条件:index.json 已解析,可访问 `skills/chat/`
 - 步骤:
   1. 对每条,从 `path`(如 `skills/chat/web-research/cn.json`)取父目录名
@@ -361,7 +361,7 @@
 ### MP-DATA-035 index 与 packages 一致
 - 优先级:P0
 - 类型:DATA
-- 状态:⬜ 待实现
+- 状态:✅ 已实现 — products/marketplace/tests/data.spec.ts:313
 - 前置条件:index.json 与 packages.json 均已解析
 - 步骤:
   1. 对每个 `(id, lang)`,断言在 `packages.json[lang]` 中存在同 id 的完整包
@@ -372,7 +372,7 @@
 ### MP-DATA-036 tools/index id 唯一且与 tools/packages 一致
 - 优先级:P1
 - 类型:DATA
-- 状态:⬜ 待实现
+- 状态:✅ 已实现 — products/marketplace/tests/data.spec.ts:332
 - 前置条件:`tools/index.json` 与 `tools/packages.json` 均已解析
 - 步骤:
   1. 断言 `tools/index.json` 内 id 无重复(对应 build.mjs `duplicate tool server id`)
@@ -382,7 +382,7 @@
 ### MP-DATA-037 codex 技能不进入 index / packages
 - 优先级:P1
 - 类型:DATA
-- 状态:⬜ 待实现
+- 状态:✅ 已实现 — products/marketplace/tests/data.spec.ts:347
 - 前置条件:`skills/codex/` 下存在 Codex 执行类技能(SKILL.md 结构)
 - 步骤:
   1. 收集 `skills/codex/` 子目录名(如 `community-project-skill`、`community-warehouse-skill`)
@@ -396,7 +396,7 @@
 ### MP-DATA-038 index.path 指向真实存在的源文件
 - 优先级:P0
 - 类型:DATA
-- 状态:⬜ 待实现
+- 状态:✅ 已实现 — products/marketplace/tests/data.spec.ts:369
 - 前置条件:index.json 已解析,可访问仓库文件系统
 - 步骤:
   1. 对每条 `resolve(repoPath, entry.path)` 后 `existsSync`
@@ -405,7 +405,7 @@
 ### MP-DATA-039 tools/index.path 指向真实存在的文件
 - 优先级:P1
 - 类型:DATA
-- 状态:⬜ 待实现
+- 状态:✅ 已实现 — products/marketplace/tests/data.spec.ts:375
 - 前置条件:`tools/index.json` 已解析
 - 步骤:
   1. 对每条 `resolve(repoPath, entry.path)` 后 `existsSync`
@@ -414,7 +414,7 @@
 ### MP-DATA-040 技能 toolServers[].id 引用真实存在的 Tool Server
 - 优先级:P0
 - 类型:DATA
-- 状态:⬜ 待实现
+- 状态:✅ 已实现 — products/marketplace/tests/data.spec.ts:381
 - 前置条件:packages.json 与 tools/index.json 均已解析
 - 步骤:
   1. 收集 `tools/index.json` 全部工具 id 作为集合
@@ -424,7 +424,7 @@
 ### MP-DATA-041 permissions.externalTools 与工具依赖一致
 - 优先级:P2
 - 类型:DATA
-- 状态:⬜ 待实现
+- 状态:✅ 已实现 — products/marketplace/tests/data.spec.ts:390
 - 前置条件:某技能包含 `permissions.externalTools`
 - 步骤:
   1. 断言 `externalTools` 中每个 id 与该技能声明的 `tools[].id` 或 `toolServers[].id` 对应
@@ -433,7 +433,7 @@
 ### MP-DATA-042 icon.type=url 时 value 可解析
 - 优先级:P2
 - 类型:DATA
-- 状态:⬜ 待实现
+- 状态:✅ 已实现 — products/marketplace/tests/data.spec.ts:404
 - 前置条件:存在 `icon.type === "url"` 的技能(当前无,作为未来数据护栏)
 - 步骤:
   1. 断言 `value` 为合法 URL 形状(必要时可选发起 HEAD 请求校验可达)
@@ -442,7 +442,7 @@
 ### MP-DATA-043 icon.type=emoji 时 value 为合法 unicode 码点
 - 优先级:P2
 - 类型:DATA
-- 状态:⬜ 待实现
+- 状态:✅ 已实现 — products/marketplace/tests/data.spec.ts:414
 - 前置条件:存在 `icon.type === "emoji"` 的技能(如 `strategy-trading` 的 `1f4c8`)
 - 步骤:
   1. 断言 `value` 可解析为有效 unicode 码点(十六进制)
@@ -451,7 +451,7 @@
 ### MP-DATA-044 instructions.type=file 时 path 指向存在文件
 - 优先级:P1
 - 类型:DATA
-- 状态:⬜ 待实现
+- 状态:✅ 已实现 — products/marketplace/tests/data.spec.ts:430
 - 前置条件:存在 `instructions.type === "file"` 的技能(当前均为 inline,作为未来数据护栏)
 - 步骤:
   1. 对 `instructions.path` 相对技能包目录 `existsSync`
@@ -460,7 +460,7 @@
 ### MP-DATA-045 npx @yeying-community 包有本地源码
 - 优先级:P2
 - 类型:DATA
-- 状态:⬜ 待实现
+- 状态:✅ 已实现 — products/marketplace/tests/data.spec.ts:443
 - 前置条件:某 Tool Server `command:"npx"` 且 `baseArgs` 含 `@yeying-community/<pkg>`
 - 步骤:
   1. 从 baseArgs 解析出包名后缀
@@ -474,7 +474,7 @@
 ### MP-DATA-046 category 为非空字符串且属已知集合
 - 优先级:P2
 - 类型:DATA
-- 状态:⬜ 待实现
+- 状态:✅ 已实现 — products/marketplace/tests/data.spec.ts:464
 - 前置条件:index.json 已解析
 - 步骤:
   1. 断言每条 `category` 为非空字符串
@@ -484,7 +484,7 @@
 ### MP-DATA-047 tags 为字符串数组且元素唯一
 - 优先级:P2
 - 类型:DATA
-- 状态:⬜ 待实现
+- 状态:✅ 已实现 — products/marketplace/tests/data.spec.ts:474
 - 前置条件:index.json 与 packages.json 已解析
 - 步骤:
   1. 断言 `tags` 为数组且元素均为字符串
@@ -494,7 +494,7 @@
 ### MP-DATA-048 packages.json 按 cn/en 分组且每组为数组
 - 优先级:P1
 - 类型:DATA
-- 状态:⬜ 待实现
+- 状态:✅ 已实现 — products/marketplace/tests/data.spec.ts:486
 - 前置条件:packages.json 已解析
 - 步骤:
   1. 断言顶层为对象且含 `cn`、`en` 键
@@ -504,7 +504,7 @@
 ### MP-DATA-049 index 条目按 id 稳定排序
 - 优先级:P2
 - 类型:DATA
-- 状态:⬜ 待实现
+- 状态:✅ 已实现 — products/marketplace/tests/data.spec.ts:495
 - 前置条件:index.json 已解析
 - 步骤:
   1. 复制条目按 build.mjs 的收集顺序(技能文件夹 `sort()`,语言按 cn→en)重排
@@ -514,7 +514,7 @@
 ### MP-DATA-050 tools/index 按文件名稳定排序
 - 优先级:P2
 - 类型:DATA
-- 状态:⬜ 待实现
+- 状态:✅ 已实现 — products/marketplace/tests/data.spec.ts:511
 - 前置条件:tools/index.json 已解析
 - 步骤:
   1. 断言条目顺序与 `tools/servers/*.json` 文件名 `sort()` 顺序一致
@@ -527,7 +527,7 @@
 ### MP-DATA-051 index.json 缺失时给出明确错误
 - 优先级:P1
 - 类型:DATA
-- 状态:⬜ 待实现
+- 状态:✅ 已实现 — products/marketplace/tests/edge.spec.ts:22
 - 前置条件:将 `MARKETPLACE_REPO_PATH` 指向不含 index.json 的目录
 - 步骤:
   1. 触发读取逻辑
@@ -536,7 +536,7 @@
 ### MP-DATA-052 packages.json 缺失时优雅跳过
 - 优先级:P2
 - 类型:DATA
-- 状态:⬜ 待实现
+- 状态:✅ 已实现 — products/marketplace/tests/edge.spec.ts:29
 - 前置条件:仓库缺少 `packages.json`
 - 步骤:
   1. 运行 packages.json 相关校验
@@ -545,7 +545,7 @@
 ### MP-DATA-053 非法 JSON 被解析失败捕获
 - 优先级:P2
 - 类型:DATA
-- 状态:⬜ 待实现
+- 状态:✅ 已实现 — products/marketplace/tests/edge.spec.ts:40
 - 前置条件:构造含尾逗号/截断的畸形 index.json 夹具
 - 步骤:
   1. 对畸形内容执行 `JSON.parse`
@@ -554,7 +554,7 @@
 ### MP-DATA-054 空数组 index 触发断言失败
 - 优先级:P2
 - 类型:DATA
-- 状态:⬜ 待实现
+- 状态:✅ 已实现 — products/marketplace/tests/edge.spec.ts:48
 - 前置条件:构造 `[]` 空数组 index.json 夹具
 - 步骤:
   1. 运行"非空"校验
@@ -563,7 +563,7 @@
 ### MP-DATA-055 可选字段缺省不报错
 - 优先级:P2
 - 类型:DATA
-- 状态:⬜ 待实现
+- 状态:✅ 已实现 — products/marketplace/tests/edge.spec.ts:58
 - 前置条件:存在缺 `description`/`tags`/`icon` 等可选字段的合法技能包
 - 步骤:
   1. 运行完整 schema 校验
@@ -585,7 +585,7 @@
 ### MP-API-002 静态 URL GET /packages.json 可获取且为合法 JSON
 - 优先级:P2
 - 类型:API
-- 状态:⬜ 待实现
+- 状态:✅ 已实现 — products/marketplace/tests/api.spec.ts:14
 - 前置条件:设置 `MARKETPLACE_BASE_URL`
 - 步骤:
   1. `GET {baseURL}/packages.json`
@@ -595,7 +595,7 @@
 ### MP-API-003 静态 URL GET /tools/packages.json 可获取
 - 优先级:P2
 - 类型:API
-- 状态:⬜ 待实现
+- 状态:✅ 已实现 — products/marketplace/tests/api.spec.ts:24
 - 前置条件:设置 `MARKETPLACE_BASE_URL`
 - 步骤:
   1. `GET {baseURL}/tools/packages.json`
@@ -604,7 +604,7 @@
 ### MP-API-004 未设置 BASE_URL 时回退磁盘读取
 - 优先级:P1
 - 类型:API
-- 状态:⬜ 待实现
+- 状态:✅ 已实现 — products/marketplace/tests/api.spec.ts:32
 - 前置条件:不设置 `MARKETPLACE_BASE_URL`,仅设 `MARKETPLACE_REPO_PATH`
 - 步骤:
   1. 运行数据校验用例

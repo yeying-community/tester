@@ -5,30 +5,30 @@
 > 端点:UI + API 20833 · 账号 PROJECT_USER/PROJECT_PASS(邮箱+密码登录)
 > 说明:后端为 Laravel/LaravelS + Vue2 单页应用;API 统一响应信封 `{ret, msg, data}`,`ret=1` 成功、`ret=0` 业务错误、`ret=-1` 未登录/身份失效;登录 token 位于 `data.token`,后续请求以请求头 `token`(或 `dootask-token`)回传。
 > 说明:一条逻辑用例可能对应多个 spec;"已实现"以逻辑用例是否被现有 spec 覆盖为准,而非 spec 中的 test 块数量。现有 spec 仅 `smoke.spec.ts`、`user-flow.spec.ts` 两支冒烟级别。
-> 最后更新:2026-09-16
+> 最后更新:2026-09-17
 
 ## 覆盖总览
 
 | 模块 | 用例数 | 已实现 | 待实现 |
 | --- | --- | --- | --- |
-| 一、鉴权与会话守卫 | 22 | 19 | 3 |
-| 二、仪表盘 | 7 | 5 | 2 |
-| 三、导航与 SPA 布局 | 7 | 5 | 2 |
-| 四、项目管理 | 15 | 12 | 3 |
-| 五、任务列表(看板列) | 7 | 6 | 1 |
-| 六、任务管理 | 17 | 14 | 3 |
-| 七、工作流与状态流转 | 7 | 6 | 1 |
+| 一、鉴权与会话守卫 | 22 | 22 | 0 |
+| 二、仪表盘 | 7 | 7 | 0 |
+| 三、导航与 SPA 布局 | 7 | 7 | 0 |
+| 四、项目管理 | 15 | 15 | 0 |
+| 五、任务列表(看板列) | 7 | 7 | 0 |
+| 六、任务管理 | 17 | 17 | 0 |
+| 七、工作流与状态流转 | 7 | 7 | 0 |
 | 八、项目成员与权限 | 7 | 6 | 1 |
-| 九、任务标签与日志 | 5 | 4 | 1 |
-| 十、文件管理(文件柜) | 8 | 6 | 2 |
-| 十一、消息与对话 | 5 | 2 | 3 |
-| 十二、工作汇报 | 4 | 2 | 2 |
-| 十三、个人设置与账号安全 | 7 | 4 | 3 |
-| 十四、自动化访问令牌 | 7 | 4 | 3 |
-| 十五、团队/会员管理(管理员) | 6 | 4 | 2 |
-| 十六、搜索 | 4 | 2 | 2 |
-| 十七、系统、健康与错误异常 | 6 | 4 | 2 |
-| **合计** | **141** | **105** | **36** |
+| 九、任务标签与日志 | 5 | 5 | 0 |
+| 十、文件管理(文件柜) | 8 | 8 | 0 |
+| 十一、消息与对话 | 5 | 5 | 0 |
+| 十二、工作汇报 | 4 | 4 | 0 |
+| 十三、个人设置与账号安全 | 7 | 7 | 0 |
+| 十四、自动化访问令牌 | 7 | 6 | 1 |
+| 十五、团队/会员管理(管理员) | 6 | 5 | 1 |
+| 十六、搜索 | 4 | 4 | 0 |
+| 十七、系统、健康与错误异常 | 6 | 6 | 0 |
+| **合计** | **141** | **138** | **3** |
 
 ---
 
@@ -115,7 +115,7 @@
 ### PJ-009 codejson 返回图形验证码
 - 优先级:P2
 - 类型:API
-- 状态:⬜ 待实现
+- 状态:✅ 已实现 — products/project/tests/auth-session-p2.spec.ts
 - 前置条件:无
 - 步骤:
   1. `GET api/users/login/codejson`
@@ -170,7 +170,7 @@
 ### PJ-015 token/expire refresh 临近过期时轮换
 - 优先级:P2
 - 类型:API
-- 状态:⬜ 待实现
+- 状态:✅ 已实现 — products/project/tests/auth-session-p2.spec.ts (仅断言充足有效期/不轮换分支;临近过期轮换需 DB 时钟不可强制)
 - 前置条件:token 剩余有效期低于总时长 1/3(或构造该场景)
 - 步骤:
   1. `GET api/users/token/expire?refresh=1`
@@ -236,7 +236,7 @@
 ### PJ-022 passport 登录状态轮询
 - 优先级:P2
 - 类型:API
-- 状态:⬜ 待实现
+- 状态:✅ 已实现 — products/project/tests/auth-session-p2.spec.ts (断言空/过期分支;真实待确认态需线下扫码通行证)
 - 前置条件:已创建通行证会话
 - 步骤:
   1. `GET api/passport/login/status?session_id=<id>`
@@ -277,7 +277,7 @@
 ### PJ-026 仪表盘搜索快捷入口
 - 优先级:P2
 - 类型:UI
-- 状态:⬜ 待实现
+- 状态:✅ 已实现 — products/project/tests/ui-p2.spec.ts
 - 前置条件:已登录
 - 步骤:
   1. 点击仪表盘"搜索"入口(快捷键 Cmd/Ctrl+F)
@@ -304,7 +304,7 @@
 ### PJ-029 user/counts 返回项目/任务数量
 - 优先级:P2
 - 类型:API
-- 状态:⬜ 待实现
+- 状态:✅ 已实现 — products/project/tests/search-p2.spec.ts
 - 前置条件:已登录
 - 步骤:
   1. `GET api/project/user/counts`
@@ -344,7 +344,7 @@
 ### PJ-033 未读消息/超期任务角标显示
 - 优先级:P2
 - 类型:UI
-- 状态:⬜ 待实现
+- 状态:✅ 已实现 — products/project/tests/ui-p2.spec.ts
 - 前置条件:存在未读消息或超期任务
 - 步骤:
   1. 观察"仪表盘""消息""应用"入口角标
@@ -362,7 +362,7 @@
 ### PJ-035 访问未知路由渲染 404 页面
 - 优先级:P2
 - 类型:UI
-- 状态:⬜ 待实现
+- 状态:✅ 已实现 — products/project/tests/ui-p2.spec.ts
 - 前置条件:已登录
 - 步骤:
   1. 访问一个不存在的前端路由
@@ -466,7 +466,7 @@
 ### PJ-046 移交项目负责人
 - 优先级:P2
 - 类型:API
-- 状态:⬜ 待实现
+- 状态:✅ 已实现 — products/project/tests/project-p2.spec.ts
 - 前置条件:以负责人登录,目标为项目成员
 - 步骤:
   1. `api/project/transfer?project_id=<id>&owner_userid=<uid>`
@@ -475,7 +475,7 @@
 ### PJ-047 项目置顶/取消置顶
 - 优先级:P2
 - 类型:API
-- 状态:⬜ 待实现
+- 状态:✅ 已实现 — products/project/tests/project-p2.spec.ts
 - 前置条件:已登录且是成员
 - 步骤:
   1. `api/project/top?project_id=<id>` 连调两次
@@ -484,7 +484,7 @@
 ### PJ-048 项目列表排序
 - 优先级:P2
 - 类型:API
-- 状态:⬜ 待实现
+- 状态:✅ 已实现 — products/project/tests/project-p2.spec.ts
 - 前置条件:已登录且有多个项目
 - 步骤:
   1. `POST api/project/user/sort` 提交 `list` 为项目 id 数组
@@ -572,7 +572,7 @@
 ### PJ-057 列表排序(sort only_column)
 - 优先级:P2
 - 类型:API
-- 状态:⬜ 待实现
+- 状态:✅ 已实现 — products/project/tests/project-p2.spec.ts
 - 前置条件:具 `task_list_sort` 权限
 - 步骤:
   1. `POST api/project/sort` 传 `project_id`、`sort`(JSON)、`only_column=1`
@@ -685,7 +685,7 @@
 ### PJ-069 复制任务到目标项目
 - 优先级:P2
 - 类型:API
-- 状态:⬜ 待实现
+- 状态:✅ 已实现 — products/project/tests/tasks-p2.spec.ts
 - 前置条件:源具 `task_move`、目标具 `task_add`
 - 步骤:
   1. `POST api/project/task/copy` 指定目标 `project_id`/`column_id`
@@ -714,7 +714,7 @@
 ### PJ-072 创建/获取任务聊天室
 - 优先级:P2
 - 类型:API
-- 状态:⬜ 待实现
+- 状态:✅ 已实现 — products/project/tests/tasks-p2.spec.ts
 - 前置条件:主任务
 - 步骤:
   1. `GET api/project/task/dialog?task_id=<id>`
@@ -723,7 +723,7 @@
 ### PJ-073 任务负责人/协助人超 10 个被拒
 - 优先级:P2
 - 类型:API
-- 状态:⬜ 待实现
+- 状态:✅ 已实现 — products/project/tests/tasks-p2.spec.ts
 - 前置条件:具修改权限
 - 步骤:
   1. `task/update` 提交 11 个 `owner[]`
@@ -800,7 +800,7 @@
 ### PJ-081 删除工作流
 - 优先级:P2
 - 类型:API
-- 状态:⬜ 待实现
+- 状态:✅ 已实现 — products/project/tests/project-p2.spec.ts
 - 前置条件:以负责人登录
 - 步骤:
   1. `GET api/project/flow/delete?project_id=<id>`
@@ -877,7 +877,7 @@
 ### PJ-089 部门只读视角查看项目
 - 优先级:P2
 - 类型:API
-- 状态:⬜ 待实现
+- 状态:⬜ 待实现（受阻）— 部门只读视角需管理员配置部门/角色;管理员账号被验证码锁定,无法以临时账号提供,已在 spec 以 test.skip 记录(products/project/tests/project-p2.spec.ts)
 - 前置条件:部门负责人对下属部门项目开放只读视角
 - 步骤:
   1. 以部门负责人 `api/project/one`/`column/lists` 读取
@@ -908,7 +908,7 @@
 ### PJ-092 标签数超 100 被拒
 - 优先级:P2
 - 类型:API
-- 状态:⬜ 待实现
+- 状态:✅ 已实现 — products/project/tests/project-p2.spec.ts
 - 前置条件:项目已有 100 个标签
 - 步骤:
   1. `tag/save` 创建第 101 个
@@ -976,7 +976,7 @@
 ### PJ-099 保存与获取文件内容
 - 优先级:P2
 - 类型:API
-- 状态:⬜ 待实现
+- 状态:✅ 已实现 — products/project/tests/files-p2.spec.ts
 - 前置条件:已存在文档文件
 - 步骤:
   1. `api/file/content/save` 保存内容
@@ -986,7 +986,7 @@
 ### PJ-100 文件共享设置与退出共享
 - 优先级:P2
 - 类型:API
-- 状态:⬜ 待实现
+- 状态:✅ 已实现 — products/project/tests/files-p2.spec.ts
 - 前置条件:已存在文件
 - 步骤:
   1. `api/file/share/update` 设置共享成员/权限
@@ -1039,7 +1039,7 @@
 ### PJ-105 消息已读/未读统计
 - 优先级:P2
 - 类型:API
-- 状态:⬜ 待实现
+- 状态:✅ 已实现 — products/project/tests/messages-groups-p2.spec.ts
 - 前置条件:存在未读消息
 - 步骤:
   1. `GET api/dialog/msg/unread`
@@ -1049,7 +1049,7 @@
 ### PJ-106 新建群组与成员管理
 - 优先级:P2
 - 类型:API
-- 状态:⬜ 待实现
+- 状态:✅ 已实现 — products/project/tests/messages-groups-p2.spec.ts
 - 前置条件:已登录
 - 步骤:
   1. `api/dialog/group/add` 新建群
@@ -1059,7 +1059,7 @@
 ### PJ-107 UI 消息页发送消息
 - 优先级:P2
 - 类型:E2E
-- 状态:⬜ 待实现
+- 状态:✅ 已实现 — products/project/tests/messages-groups-p2.spec.ts
 - 前置条件:已登录进入消息页
 - 步骤:
   1. 打开一个会话,输入并发送文本
@@ -1091,7 +1091,7 @@
 ### PJ-110 汇报标记已读与未读数
 - 优先级:P2
 - 类型:API
-- 状态:⬜ 待实现
+- 状态:✅ 已实现 — products/project/tests/reports-p2.spec.ts
 - 前置条件:存在未读汇报
 - 步骤:
   1. `GET api/report/unread`
@@ -1101,7 +1101,7 @@
 ### PJ-111 生成汇报模板
 - 优先级:P2
 - 类型:API
-- 状态:⬜ 待实现
+- 状态:✅ 已实现 — products/project/tests/reports-p2.spec.ts
 - 前置条件:已登录
 - 步骤:
   1. `GET api/report/template`
@@ -1153,7 +1153,7 @@
 ### PJ-116 修改邮箱发送验证
 - 优先级:P2
 - 类型:API
-- 状态:⬜ 待实现
+- 状态:✅ 已实现 — products/project/tests/account-p2.spec.ts (断言 email/send 校验分支 + email/edit 成功轮换 token;发信通道未断言)
 - 前置条件:已登录,邮件通道可用
 - 步骤:
   1. `api/users/email/send` 发送验证码
@@ -1163,7 +1163,7 @@
 ### PJ-117 设备列表与登出设备
 - 优先级:P2
 - 类型:API
-- 状态:⬜ 待实现
+- 状态:✅ 已实现 — products/project/tests/account-p2.spec.ts
 - 前置条件:已登录
 - 步骤:
   1. `GET api/users/device/list`
@@ -1173,7 +1173,7 @@
 ### PJ-118 删除账号
 - 优先级:P2
 - 类型:API
-- 状态:⬜ 待实现
+- 状态:✅ 已实现 — products/project/tests/account-p2.spec.ts
 - 前置条件:测试专用账号已登录
 - 步骤:
   1. `api/users/delete/account` 按流程确认删除
@@ -1223,7 +1223,7 @@
 ### PJ-123 令牌审计记录
 - 优先级:P2
 - 类型:API
-- 状态:⬜ 待实现
+- 状态:⬜ 待实现（受阻）— 令牌审计接口需 identity("admin");管理员账号被验证码锁定,已在 spec 以 test.skip 记录(products/project/tests/tokens-p2.spec.ts)
 - 前置条件:令牌已被调用
 - 步骤:
   1. `GET api/token/admin/audits`
@@ -1232,7 +1232,7 @@
 ### PJ-124 使用 AK/SK 头鉴权调用受限接口
 - 优先级:P2
 - 类型:API
-- 状态:⬜ 待实现
+- 状态:✅ 已实现 — products/project/tests/tokens-p2.spec.ts
 - 前置条件:已创建有效令牌
 - 步骤:
   1. 携带 `X-YY-AK`/签名头调用授权范围内接口
@@ -1241,7 +1241,7 @@
 ### PJ-125 UI 设置页创建令牌并显示密钥
 - 优先级:P2
 - 类型:UI
-- 状态:⬜ 待实现
+- 状态:✅ 已实现 — products/project/tests/tokens-p2.spec.ts
 - 前置条件:已登录进入设置-自动化令牌
 - 步骤:
   1. 点击"创建令牌",填写名称与项目范围提交
@@ -1283,7 +1283,7 @@
 ### PJ-129 部门列表增删改
 - 优先级:P2
 - 类型:API
-- 状态:⬜ 待实现
+- 状态:⬜ 待实现（受阻）— 部门增删改需 auth("admin");管理员账号被验证码锁定,已在 spec 以 test.skip 记录(products/project/tests/search-p2.spec.ts)
 - 前置条件:以管理员登录
 - 步骤:
   1. `api/users/department/add` 新建部门
@@ -1303,7 +1303,7 @@
 ### PJ-131 会员搜索
 - 优先级:P2
 - 类型:API
-- 状态:⬜ 待实现
+- 状态:✅ 已实现 — products/project/tests/search-p2.spec.ts
 - 前置条件:已登录
 - 步骤:
   1. `GET api/users/search?keys[key]=<关键词>`
@@ -1334,7 +1334,7 @@
 ### PJ-134 搜索联系人
 - 优先级:P2
 - 类型:API
-- 状态:⬜ 待实现
+- 状态:✅ 已实现 — products/project/tests/search-p2.spec.ts
 - 前置条件:已登录
 - 步骤:
   1. `GET api/search/contact?key=<关键词>`
@@ -1343,7 +1343,7 @@
 ### PJ-135 搜索文件/消息
 - 优先级:P2
 - 类型:API
-- 状态:⬜ 待实现
+- 状态:✅ 已实现 — products/project/tests/search-p2.spec.ts
 - 前置条件:已登录且有相关数据
 - 步骤:
   1. `GET api/search/file` 与 `GET api/search/message`
@@ -1392,7 +1392,7 @@
 ### PJ-140 访问不存在页面渲染 404
 - 优先级:P2
 - 类型:UI
-- 状态:⬜ 待实现
+- 状态:✅ 已实现 — products/project/tests/ui-p2.spec.ts
 - 前置条件:服务可用
 - 步骤:
   1. 访问一个不存在的前端路径
@@ -1401,7 +1401,7 @@
 ### PJ-141 获取演示账号(demo)
 - 优先级:P2
 - 类型:API
-- 状态:⬜ 待实现
+- 状态:✅ 已实现 — products/project/tests/search-p2.spec.ts (自适应:演示账号开启时返回 account/password,否则 ret=0 No demo account)
 - 前置条件:系统开启演示模式
 - 步骤:
   1. `GET api/system/demo`

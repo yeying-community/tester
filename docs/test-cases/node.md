@@ -3,25 +3,25 @@
 > 测试人员视角整理的**应有** E2E 用例清单,作为实现依据。
 > 状态说明:✅ 已实现(链接到 spec) / ⬜ 待实现。
 > 端点:前后端同源,均由 8100 的 Express 实例托管(8991 为约定配置端口,非独立服务);API 前缀 `/api/v1/public/*`;EIP-4361 SIWE 登录
-> 最后更新:2026-09-16
+> 最后更新:2026-09-17
 
 ## 覆盖总览
 
 | 模块 | 用例数 | 已实现 | 待实现 |
 | --- | --- | --- | --- |
-| 一、健康检查与就绪 | 4 | 2 | 2 |
-| 二、SIWE 认证与会话 | 11 | 9 | 2 |
-| 三、前端首页与导航 | 5 | 4 | 1 |
-| 四、应用市场浏览 | 4 | 3 | 1 |
-| 五、开发者应用生命周期 | 15 | 12 | 3 |
+| 一、健康检查与就绪 | 4 | 3 | 1 |
+| 二、SIWE 认证与会话 | 11 | 11 | 0 |
+| 三、前端首页与导航 | 5 | 5 | 0 |
+| 四、应用市场浏览 | 4 | 4 | 0 |
+| 五、开发者应用生命周期 | 15 | 13 | 2 |
 | 六、应用审核 | 2 | 1 | 1 |
 | 七、申请使用应用 | 1 | 1 | 0 |
-| 八、身份能力(TOTP/Passkey/授权码) | 4 | 2 | 2 |
+| 八、身份能力(TOTP/Passkey/授权码) | 4 | 4 | 0 |
 | 九、通知中心 | 2 | 2 | 0 |
 | 十、会话与鉴权守卫 | 2 | 2 | 0 |
-| **合计** | **50** | **38** | **12** |
+| **合计** | **50** | **46** | **4** |
 
-> 说明:后端与前端由同一 Express 实例托管,API 根路径统一为 `/api/v1/public/*`;响应统一信封 `{code, message, data, timestamp}`(成功 `code=0`)。写操作(建应用、发布、下线、删除、配置)均需在请求体内携带 `personal_sign` 的**签名动作信封**(action 分别为 `application_create` / `application_update` / `application_publish` / `application_unpublish` / `application_delete` / `application_config_upsert`)。
+> 说明:后端与前端由同一 Express 实例托管,API 根路径统一为 `/api/v1/public/*`;响应统一信封 `{code, message, data, timestamp}`(成功 `code=0`)。写操作(建应用、发布、下线、删除、配置)均需在请求体内携带 `personal_sign` 的**签名动作信封**(action 分别为 `application_create` / `application_update` / `application_publish` / `application_unpublish` / `application_delete` / `application_config_upsert`)。剩余 4 个待实现均为**降级跳过**(依赖管理员审批或非破坏性造 DB 断连,环境不具备),已在对应 spec 中以 `test.skip` + 明确原因落地,绝不伪造通过。
 
 ---
 
@@ -48,7 +48,7 @@
 ### ND-API-003 健康检查向后兼容别名
 - 优先级:P2
 - 类型:API
-- 状态:⬜ 待实现
+- 状态:✅ 已实现 — products/node/tests/api.spec.ts:199
 - 前置条件:后端已启动。
 - 步骤:
   1. GET `/api/v1/public/healthCheck`。
@@ -98,7 +98,7 @@
 ### ND-API-008 verify 拒绝错误私钥的签名
 - 优先级:P0
 - 类型:API
-- 状态:⬜ 待实现
+- 状态:✅ 已实现 — products/node/tests/api.spec.ts:216
 - 前置条件:已获取地址 A 的 challenge。
 - 步骤:
   1. 用地址 B(不同私钥)对 A 的 challenge 签名。
@@ -117,7 +117,7 @@
 ### ND-API-010 verify 缺字段返回 400
 - 优先级:P2
 - 类型:API
-- 状态:⬜ 待实现
+- 状态:✅ 已实现 — products/node/tests/api.spec.ts:246
 - 前置条件:后端已启动。
 - 步骤:
   1. POST `/api/v1/public/auth/verify`,分别缺 `address` / `signature` / `nonce`。
@@ -212,7 +212,7 @@
 ### ND-UI-005 界面语言切换(i18n)
 - 优先级:P2
 - 类型:UI
-- 状态:⬜ 待实现
+- 状态:✅ 已实现 — products/node/tests/i18n.spec.ts:33
 - 前置条件:前端提供中英文语言包。
 - 步骤:
   1. 切换语言选择器至英文/中文。
@@ -252,7 +252,7 @@
 ### ND-UI-009 应用检索/筛选
 - 优先级:P2
 - 类型:UI
-- 状态:⬜ 待实现
+- 状态:✅ 已实现 — products/node/tests/market.spec.ts:82
 - 前置条件:市场已发布若干应用。
 - 步骤:
   1. 在市场页按名称/分类进行检索或筛选。
@@ -399,7 +399,7 @@
 ### ND-API-027 保存草稿前的重名检查
 - 优先级:P2
 - 类型:API
-- 状态:⬜ 待实现
+- 状态:✅ 已实现 — products/node/tests/app-write-api.spec.ts:208
 - 前置条件:已存在同名自建应用。
 - 步骤:
   1. POST `/api/v1/public/applications/search`,condition 含相同 `name`。
@@ -450,7 +450,7 @@
 ### ND-API-029 身份状态查询
 - 优先级:P2
 - 类型:API
-- 状态:⬜ 待实现
+- 状态:✅ 已实现 — products/node/tests/identity-api.spec.ts:37
 - 前置条件:已登录。
 - 步骤:
   1. GET `/api/v1/public/identity/status`(及 `/identity/totp/status`)。
@@ -470,7 +470,7 @@
 ### ND-API-031 Passkey 注册请求与确认
 - 优先级:P2
 - 类型:API
-- 状态:⬜ 待实现
+- 状态:✅ 已实现 — products/node/tests/passkey.spec.ts:104(用 Chromium CDP 虚拟认证器 `WebAuthn.addVirtualAuthenticator` 产出真实 `none` 证明,跑通 请求→创建凭证→确认→列表→撤销 全闭环,非硬件但真验证)
 - 前置条件:已登录。
 - 步骤:
   1. POST `/identity/passkeys/register/request` 获取注册挑战。

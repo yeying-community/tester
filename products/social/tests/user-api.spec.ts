@@ -32,6 +32,7 @@ function skipIfNoStack() {
 }
 
 // SO-API-025 (P1) — fetch a user by id.
+// (SO-API-028 lives at the bottom of this file.)
 test('SO-API-025 get user by id', async () => {
   skipIfNoStack();
   const A = await newSiweIdentity(platformURL()!, identityURL()!);
@@ -88,6 +89,25 @@ test('SO-API-027 update profile', async () => {
     expect(afterBody.code).toBe(200);
     expect(afterBody.data.signature).toBe(newSig);
     expect(afterBody.data.nickName).toBe(newNick);
+  } finally {
+    await ctx.dispose();
+  }
+});
+
+// SO-API-028 (P2) — query online terminals for a set of users.
+// Live: GET /user/terminal/online?userIds=a,b -> Result<List<OnlineTerminalVO>>.
+// Over pure HTTP (no live IM WebSocket) the users read back as offline, so the
+// list is empty — we assert the endpoint is reachable and returns an array.
+test('SO-API-028 query terminal online status', async () => {
+  skipIfNoStack();
+  const A = await newSiweIdentity(platformURL()!, identityURL()!);
+  const B = await newSiweIdentity(platformURL()!, identityURL()!);
+  const ctx = await platformCtx(platformURL()!, A.login.accessToken);
+  try {
+    const res = await ctx.get(`/user/terminal/online?userIds=${A.userId},${B.userId}`);
+    const body = (await res.json()) as Envelope<Array<{ userId: number; terminals: unknown }>>;
+    expect(body.code).toBe(200);
+    expect(Array.isArray(body.data)).toBe(true);
   } finally {
     await ctx.dispose();
   }

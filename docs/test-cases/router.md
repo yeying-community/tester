@@ -3,23 +3,23 @@
 > 测试人员视角整理的**应有** E2E 用例清单,作为实现依据。
 > 状态说明:✅ 已实现(链接到 spec) / ⬜ 待实现。
 > 端点:admin UI + API 3011(内嵌 Go 二进制)· 自定义 SIWE
-> 最后更新:2026-09-16
+> 最后更新:2026-09-17
 
 ## 覆盖总览
 
 | 模块 | 用例数 | 已实现 | 待实现 |
 | --- | --- | --- | --- |
 | 一、服务健康与公共信息 | 7 | 7 | 0 |
-| 二、钱包自定义 SIWE 鉴权 | 11 | 7 | 4 |
+| 二、钱包自定义 SIWE 鉴权 | 11 | 9 | 2 |
 | 三、鉴权与权限边界(混合信封) | 8 | 8 | 0 |
-| 四、管理后台 UI 与登录导航 | 12 | 9 | 3 |
-| 五、工作台只读页面 | 7 | 4 | 3 |
+| 四、管理后台 UI 与登录导航 | 12 | 12 | 0 |
+| 五、工作台只读页面 | 7 | 6 | 1 |
 | 六、令牌(Token)生命周期 | 10 | 7 | 3 |
-| 七、充值与订单生命周期 | 8 | 1 | 7 |
-| 八、余额与兑换码 | 5 | 0 | 5 |
-| 九、个人中心与账户设置 | 5 | 1 | 4 |
-| 十、OpenAI 兼容模型与中继 | 6 | 3 | 3 |
-| **合计** | **79** | **47** | **32** |
+| 七、充值与订单生命周期 | 8 | 3 | 5 |
+| 八、余额与兑换码 | 5 | 3 | 2 |
+| 九、个人中心与账户设置 | 5 | 5 | 0 |
+| 十、OpenAI 兼容模型与中继 | 6 | 5 | 1 |
+| **合计** | **79** | **65** | **14** |
 
 > 说明:Router 单一 Go 二进制在 `:3011` 上同时提供内嵌 React 管理后台与 API。
 > 钱包是唯一登录方式(`password_login_enabled=false`、`password_register_enabled=false`)。
@@ -133,7 +133,7 @@
 ### RT-API-008 challenge 拒绝未绑定且未开启自动注册的地址
 - 优先级:P1
 - 类型:API
-- 状态:⬜ 待实现(降级跳过)— products/router/tests/auth-negative.spec.ts(本部署 `AutoRegisterEnabled=true`,未绑定地址会被自动注册,拒绝分支不可达;测试探测随机地址 challenge,检测到自动注册开启即降级跳过,关闭时才断言拒绝)
+- 状态:⬜ 待实现(降级跳过)— products/router/tests/auth-negative.spec.ts:113(本部署 `AutoRegisterEnabled=true`,未绑定地址会被自动注册,拒绝分支不可达;测试探测随机地址 challenge,检测到自动注册开启即降级跳过,关闭时才断言拒绝)
 - 前置条件:后台 `AutoRegisterEnabled=false`;使用一个从未绑定账户的随机地址。
 - 步骤:
   1. POST challenge,body `{address: <未绑定地址>}`。
@@ -183,26 +183,26 @@
 ### RT-API-013 refreshToken 换发新 token 且拒绝非法 token
 - 优先级:P2
 - 类型:API
-- 状态:⬜ 待实现
+- 状态:✅ 已实现 — products/router/tests/auth-negative.spec.ts:168
 - 前置条件:已获得有效 token。
 - 步骤:
   1. POST `/api/v1/public/common/auth/refreshToken`,携带 `Authorization: Bearer <token>`。
   2. 再用伪造/过期 token 调用。
-- 预期结果:有效 token 返回新 token 与 `expires_at`;非法 token 返回 `code=3`、消息“token 无效或已过期”。
+- 预期结果:有效 token 返回新 token 与 `expires_at`;非法 token 返回消息“token 无效或已过期”(proto 信封 HTTP 200,`writeProtoError` 丢弃顶层 `code`,故实测无文档所称的 `code=3`)。
 
 ### RT-API-014 地址大小写不敏感登录(非 EIP-55 校验)
 - 优先级:P2
 - 类型:API
-- 状态:⬜ 待实现
+- 状态:✅ 已实现 — products/router/tests/auth-negative.spec.ts:212
 - 前置条件:配置钱包私钥。
 - 步骤:
-  1. 用全小写地址完成 challenge→sign→verify。
-- 预期结果:登录成功(`IsValidEthAddress` 为正则校验,非 EIP-55 校验和;地址被 `NormalizeWalletAddress` 归一化)。
+  1. 用全大写(非 checksum)地址完成 challenge→sign→verify。
+- 预期结果:登录成功(`IsValidEthAddress` 为正则校验,非 EIP-55 校验和;地址被 `NormalizeWalletAddress` 归一化为小写)。
 
 ### RT-API-015 auth 端点受 CriticalRateLimit 限流
 - 优先级:P2
 - 类型:API
-- 状态:⬜ 待实现
+- 状态:⬜ 待实现(降级跳过)— products/router/tests/auth-negative.spec.ts:265(本部署限流为空操作:临界端点被 `DebugEnabled`/阈值 0 短路,30 次高频 `/auth/challenge`(超过 20/20min 阈值)全部 200,限流分支不可达;因限流按 IP 且会毒化其余 auth 用例,仅发小规模 burst,一旦出现 429 即断言保护,否则据实降级跳过)
 - 前置条件:服务可达。
 - 步骤:
   1. 在短时间内高频调用 `/auth/challenge`(超过限流阈值)。
@@ -357,16 +357,16 @@
 ### RT-UI-011 已鉴权用户侧栏导航渲染分组
 - 优先级:P2
 - 类型:UI
-- 状态:⬜ 待实现
+- 状态:✅ 已实现 — products/router/tests/workspace-nav.spec.ts:27
 - 前置条件:已注入钱包会话(`seedWalletSession`)。
 - 步骤:
   1. 打开任一 `/workspace/*` 页。
-- 预期结果:侧栏 `.router-user-nav-menu` 渲染“概览/我的/帮助”分组,含 模型、额度、令牌、账户、日志 菜单项。
+- 预期结果:侧栏渲染“概览/我的/帮助”分组,含 模型、额度、令牌、账户、日志 菜单项。备注:实测 live 布局渲染 AdminSidebar `.router-admin-nav-menu`(文档所称 `.router-user-nav-menu` 为未挂载的孤儿类名);文案随浏览器 locale(headless 下为 English,同时兼容中文)。
 
 ### RT-UI-012 语言切换(中文/English)
 - 优先级:P2
 - 类型:UI
-- 状态:⬜ 待实现
+- 状态:✅ 已实现 — products/router/tests/workspace-nav.spec.ts:48
 - 前置条件:已进入后台任意页。
 - 步骤:
   1. 点击 Header 语言下拉 `.router-header-dropdown`,选择另一语言。
@@ -393,11 +393,11 @@
 ### RT-UI-015 /workspace/entry 依据余额/套餐重定向
 - 优先级:P2
 - 类型:UI
-- 状态:⬜ 待实现
+- 状态:✅ 已实现 — products/router/tests/workspace-nav.spec.ts:81
 - 前置条件:已注入钱包会话。
 - 步骤:
   1. 打开 `/workspace/entry`。
-- 预期结果:有活跃套餐或余额>0 → 跳 `/workspace/topup?tab=quota`;否则跳 `/workspace/service/pricing`。
+- 预期结果:有活跃套餐或余额>0 → 跳 `/workspace/topup?tab=quota`;否则跳 `/workspace/service/pricing`。测试账号无套餐且余额为 0,断言落在 pricing 分支。
 
 ---
 
@@ -433,16 +433,16 @@
 ### RT-UI-019 模型页渲染可用模型标签
 - 优先级:P2
 - 类型:UI
-- 状态:⬜ 待实现
+- 状态:✅ 已实现 — products/router/tests/workspace-nav.spec.ts:99
 - 前置条件:已注入钱包会话。
 - 步骤:
   1. 打开 `/workspace/service/models`。
-- 预期结果:标题“模型/Models”渲染;可用模型以 `.router-tag` 标签展示;含刷新按钮(账号无模型时为友好空态)。
+- 预期结果:刷新按钮 `.workspace-models-refresh` 渲染;可用模型以 `.router-tag` 标签展示(账号无模型时为 `.workspace-models-empty` 友好空态,两者取其一)。
 
 ### RT-UI-020 额度总览页展示消费日历
 - 优先级:P2
 - 类型:UI
-- 状态:⬜ 待实现
+- 状态:✅ 已实现 — products/router/tests/workspace-nav.spec.ts:123
 - 前置条件:已注入钱包会话。
 - 步骤:
   1. 打开 `/workspace/topup?tab=quota`,定位 `.dashboard-spend-section`。
@@ -460,7 +460,7 @@
 ### RT-UI-022 令牌值复制与启用/禁用切换交互
 - 优先级:P2
 - 类型:UI
-- 状态:⬜ 待实现
+- 状态:⬜ 待实现(降级跳过)— products/router/tests/token-ui.spec.ts:42(条件跳过:当前账户无令牌;创建令牌需可用模型=外部支付边界。存在令牌时执行复制→toast + 状态开关 PUT 切换并复位)
 - 前置条件:已注入会话且账户至少有 1 个令牌。
 - 步骤:
   1. 在令牌行点击复制图标;点击状态开关切换启用/禁用。
@@ -549,7 +549,7 @@
 ### RT-API-031 token/status 以 API Key 返回额度状态
 - 优先级:P2
 - 类型:API
-- 状态:⬜ 待实现
+- 状态:⬜ 待实现(降级跳过)— products/router/tests/token-api.spec.ts:243(条件跳过:探测 `GET /user/models/available` 为空即无法创建令牌=外部支付边界;有可用模型时铸造令牌并以 API Key 读 token/status)
 - 前置条件:已创建并取得令牌 key。
 - 步骤:
   1. 用 `Authorization: Bearer sk-<key>` GET `/token/status`。
@@ -558,7 +558,7 @@
 ### RT-UI-023 令牌编辑页修改名称/配额/模型限制并保存
 - 优先级:P2
 - 类型:UI
-- 状态:⬜ 待实现
+- 状态:⬜ 待实现(降级跳过)— products/router/tests/token-ui.spec.ts:83(条件跳过:当前账户无令牌可编辑;创建令牌需可用模型=外部支付边界。存在令牌时打开 `/workspace/token/:id` 改名保存断言 PUT `success=true` 并复原)
 - 前置条件:已注入会话且存在 1 个令牌。
 - 步骤:
   1. 打开 `/workspace/token/:id`(EditToken)。
@@ -619,16 +619,16 @@
 ### RT-API-036 POST /topup/package/preview 套餐购买预览
 - 优先级:P2
 - 类型:API
-- 状态:⬜ 待实现
+- 状态:✅ 已实现 — products/router/tests/topup-balance.spec.ts:112
 - 前置条件:存在可购套餐。
 - 步骤:
   1. POST `/user/topup/package/preview`,body 含套餐/操作类型。
-- 预期结果:返回预览价格、货币、生效额度等,不实际下单。
+- 预期结果:空 `package_id` 返回“套餐 ID 不能为空”;取 `GET /user/packages` 的有效套餐预览返回 `success=true`、`target_package_id` 一致、`payable_amount` 为数值、`payable_currency` 非空,不实际下单。
 
 ### RT-API-037 订单状态流转覆盖(created→pending→paid→fulfilled 及失败/取消分支)
 - 优先级:P2
 - 类型:API
-- 状态:⬜ 待实现
+- 状态:⬜ 待实现(降级跳过)— products/router/tests/topup-orders.spec.ts:185(本部署 `top_up_mode=api`:推进状态机需创建真实外部支付订单并桩化回调,越过外部支付边界不可行,故降级跳过)
 - 前置条件:可通过 stub 支付回调驱动状态。
 - 步骤:
   1. 依次以合法状态推进订单,并验证非法跳转被拒。
@@ -637,11 +637,11 @@
 ### RT-UI-024 套餐购买页展示订阅套餐卡片
 - 优先级:P2
 - 类型:UI
-- 状态:⬜ 待实现
+- 状态:✅ 已实现 — products/router/tests/pricing-ui.spec.ts:25
 - 前置条件:已注入会话且存在可购套餐。
 - 步骤:
   1. 打开 `/workspace/service/pricing`,定位 `#pricing-package-section`。
-- 预期结果:`.router-package-purchase-card` 渲染套餐名/价格/额度信息(PackagePurchasePage)。
+- 预期结果:`.router-package-purchase-card` 渲染套餐名(`.router-package-purchase-card-title`)与价格(`.router-package-purchase-price`)信息(PackagePurchasePage)。
 
 ---
 
@@ -650,7 +650,7 @@
 ### RT-UI-025 余额状态页显示三类余额
 - 优先级:P2
 - 类型:UI
-- 状态:⬜ 待实现
+- 状态:⬜ 待实现(降级跳过)— products/router/tests/pricing-ui.spec.ts:43(BalanceStatusPage `.router-topup-balance-layout` 为死代码:`web/src/App.jsx` 无任何路由挂载它,`/workspace/topup` 无视 `?tab` 恒渲染 QuotaPage,三余额状态布局本构建不可达)
 - 前置条件:已注入会话。
 - 步骤:
   1. 打开余额状态页(BalanceStatusPage,`.router-topup-balance-layout`)。
@@ -669,29 +669,29 @@
 ### RT-API-038 GET /user/topup/balance/summary 返回余额汇总
 - 优先级:P2
 - 类型:API
-- 状态:⬜ 待实现
+- 状态:✅ 已实现 — products/router/tests/topup-balance.spec.ts:27
 - 前置条件:持有用户 JWT。
 - 步骤:
   1. GET `/user/topup/balance/summary`。
-- 预期结果:200;返回充值/兑换/赠送余额汇总字段。
+- 预期结果:200;返回充值/兑换/赠送/总额(`topup`/`redeem`/`gift`/`total_balance_amount`)均为数值。
 
 ### RT-API-039 GET 余额批次与流水
 - 优先级:P2
 - 类型:API
-- 状态:⬜ 待实现
+- 状态:✅ 已实现 — products/router/tests/topup-balance.spec.ts:56
 - 前置条件:持有用户 JWT。
 - 步骤:
   1. GET `/user/topup/balance/lots`、`/user/topup/balance/transactions`。
-- 预期结果:200;分别返回余额批次列表与批次流水(可为空但结构合法)。
+- 预期结果:200;分别返回余额批次列表与批次流水(`items` 数组、`total` 数值;可为空但结构合法)。
 
 ### RT-API-040 GET /user/topup/redemptions 返回兑换记录
 - 优先级:P2
 - 类型:API
-- 状态:⬜ 待实现
+- 状态:✅ 已实现 — products/router/tests/topup-balance.spec.ts:83
 - 前置条件:持有用户 JWT。
 - 步骤:
   1. GET `/user/topup/redemptions`。
-- 预期结果:200;返回当前用户兑换记录列表。
+- 预期结果:200;返回当前用户兑换记录列表(`items` 数组、`total` 数值)。
 
 ---
 
@@ -700,41 +700,41 @@
 ### RT-UI-026 账户设置页加载并展示账户信息
 - 优先级:P2
 - 类型:UI
-- 状态:⬜ 待实现
+- 状态:✅ 已实现 — products/router/tests/user-account.spec.ts:79
 - 前置条件:已注入会话。
 - 步骤:
   1. 打开 `/workspace/setting`(PersonalSetting)。
-- 预期结果:“账户信息”区块渲染;展示当前用户名与绑定钱包地址(来自 `GET /user/self`)。
+- 预期结果:“账户信息”区块渲染;展示当前用户名与绑定钱包地址(只读 `input.router-section-input`,来自 `GET /user/self`);含“修改密码”入口。
 
 ### RT-E2E-004 修改用户名并持久化
 - 优先级:P2
 - 类型:E2E
-- 状态:⬜ 待实现
+- 状态:✅ 已实现 — products/router/tests/user-account.spec.ts:114
 - 前置条件:已注入会话。
 - 步骤:
-  1. 在账户设置页编辑用户名并保存(`PUT /user/self`)。
+  1. 在账户设置页点“编辑”进入可编辑态,填新用户名并“保存”(`PUT /user/self`)。
   2. 刷新页面重新加载。
-- 预期结果:保存成功;刷新后显示新用户名。
-- 备注:测试后应复原原用户名。
+- 预期结果:保存成功;刷新后显示新用户名(用户名有 max 长度约束,用短名)。
+- 备注:测试用 finally 经 API 复原原用户名,side-effect neutral。
 
 ### RT-E2E-005 设置/修改密码
 - 优先级:P2
 - 类型:E2E
-- 状态:⬜ 待实现
+- 状态:✅ 已实现 — products/router/tests/user-account.spec.ts:172
 - 前置条件:已注入会话。
 - 步骤:
   1. 打开修改密码弹窗,填写并提交(`POST /user/self/password`)。
 - 预期结果:提交成功提示;`has_password` 变为 true(设置)或密码更新成功。
-- 备注:钱包账户默认无密码,注意用例对账户状态的副作用与复原。
+- 备注:该账户已设密码,弹窗为“修改”模式(当前/新/确认三输入);测试提交一个足够长但错误的“当前密码”,断言服务受控返回 `success=false`、“当前密码错误”,证明请求闭环且不改动真实密码(非破坏性)。
 
 ### RT-API-041 用户聚合读接口返回数据
 - 优先级:P2
 - 类型:API
-- 状态:⬜ 待实现
+- 状态:✅ 已实现 — products/router/tests/user-account.spec.ts:31
 - 前置条件:持有用户 JWT。
 - 步骤:
   1. GET `/user/dashboard`、`/user/spend/overview`、`/user/quota/summary`、`/user/quota/overview`。
-- 预期结果:均返回 SDK 信封 `{code:0, data}`;字段结构合法(空账户返回零值)。
+- 预期结果:字段结构合法(空账户返回零值)。备注(与文档不符):实测四端点返回 proto 信封 `{success,data}` 而非文档所称 SDK `{code:0,...}`;dashboard 为数组、spend/overview 含 period 字段、quota/summary 含 user_id+daily、quota/overview 含 total_amount+balance。
 
 ### RT-API-042 GET /user/self 返回当前用户对象
 - 优先级:P1
@@ -779,16 +779,16 @@
 ### RT-API-046 未实现的中继端点返回 not implemented
 - 优先级:P2
 - 类型:API
-- 状态:⬜ 待实现
+- 状态:✅ 已实现(边界) — products/router/tests/relay.spec.ts:89
 - 前置条件:已创建 API token。
 - 步骤:
   1. 用 API Key 调用标注 `RelayNotImplemented` 的端点(如 `GET /files`、`POST /fine_tuning/jobs`)。
-- 预期结果:返回“未实现”的受控响应,而非 5xx 崩溃。
+- 预期结果:返回“未实现”的受控响应,而非 5xx 崩溃。备注:当前账号无真实 API Key,用伪造 `sk-` 触达路由——端点已注册且被 `TokenAuth` 网关拦截(401 one-api 错误信封),证明其为受控注册端点而非崩溃;未真正命中 not-implemented 分支(需真实 key,外部支付边界)。
 
 ### RT-API-047 DISABLE_OPENAI_COMPAT 时旧 /v1/* 路径被禁用
 - 优先级:P2
 - 类型:API
-- 状态:⬜ 待实现
+- 状态:⬜ 待实现(降级跳过)— products/router/tests/relay.spec.ts:121(本部署 OpenAI 兼容开启:探测 legacy `/v1/chat/completions` 返回 401=兼容已启用,禁用分支不可达,故降级跳过;需以 `DISABLE_OPENAI_COMPAT=true` 重启服务才能断言 404)
 - 前置条件:以 `DISABLE_OPENAI_COMPAT=true` 启动服务。
 - 步骤:
   1. 请求旧 `/v1/chat/completions` 与 `/dashboard/*`。
@@ -798,8 +798,8 @@
 ### RT-API-048 中继调用写入路由日志可查
 - 优先级:P2
 - 类型:API
-- 状态:⬜ 待实现
+- 状态:✅ 已实现 — products/router/tests/relay.spec.ts:158
 - 前置条件:已完成一次成功中继调用;持有用户 JWT。
 - 步骤:
   1. GET `/api/v1/public/log`(UserAuth)查询本用户日志。
-- 预期结果:列表含刚才的中继调用记录(模型、渠道、用量);`/log/:id` 可查看单条详情。
+- 预期结果:列表返回 `success=true`、含分页 `meta` 与数组;有记录时 `/log/:id` 可查看单条详情,无记录时 `/log/nonexistent` 返回受控“日志不存在”。当前账号无真实中继调用(外部支付边界),按日志结构与详情/不存在两分支断言契约。

@@ -10,9 +10,14 @@ import { test, expect, baseURLFor, hasEnv } from '../fixtures';
 test('home renders with a heading region', async ({ page }) => {
   test.skip(!baseURLFor('chat'), 'CHAT_BASE_URL not configured');
   await page.goto('/');
-  // Be lenient: the SPA mounts the Home component.
-  const body = await page.locator('body').innerText();
-  expect(body.length).toBeGreaterThan(0);
+  // Be lenient: the SPA mounts the Home component, then the unauthenticated
+  // landing client-redirects to the wallet auth gate — poll for real content
+  // instead of reading an empty mid-redirect shell.
+  await expect
+    .poll(async () => (await page.locator('body').innerText()).trim().length, {
+      timeout: 15_000,
+    })
+    .toBeGreaterThan(0);
 });
 
 test('home responds 2xx', async ({ request }) => {

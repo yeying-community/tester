@@ -223,6 +223,62 @@ test('SO-API-007 refresh token yields a usable accessToken', async () => {
   }
 });
 
+// SO-API-008 (P2) — missing / forged refreshToken is rejected, no new token issued.
+// Live: PUT /refreshToken with no header -> {code:500,"系统繁忙..."}; with a
+// garbage token -> {code:500,"您的登录信息已过期，请重新登录"}. Both non-200, data null.
+test('SO-API-008 missing/invalid refreshToken is rejected', async () => {
+  skipIfNoPlatform();
+  const ctx = await apiContext(platformURL()!);
+  try {
+    // No refreshToken header at all.
+    const noHeader = await ctx.put('/refreshToken');
+    const noHeaderBody = (await noHeader.json()) as Envelope<LoginVO | null>;
+    expect(noHeaderBody.code).not.toBe(200);
+    expect(noHeaderBody.data).toBeFalsy();
+
+    // A well-formed-looking but forged refreshToken.
+    const forged = await ctx.put('/refreshToken', {
+      headers: { refreshToken: 'forged.refresh.token' },
+    });
+    const forgedBody = (await forged.json()) as Envelope<LoginVO | null>;
+    expect(forgedBody.code).not.toBe(200);
+    expect(forgedBody.data).toBeFalsy();
+  } finally {
+    await ctx.dispose();
+  }
+});
+
+// SO-API-010 (P2) — change password with the wrong old password is rejected,
+// and the original password still works (password unchanged).
+test('SO-API-010 change password with wrong old password is rejected', async () => {
+  skipIfNoPlatform();
+  const { creds, login } = await registerAndLogin(platformURL()!);
+  expect(login.code).toBe(200);
+
+  const authed = await platformCtx(platformURL()!, login.data.accessToken);
+  try {
+    const res = await authed.put('/modifyPwd', {
+      data: { oldPassword: creds.password + '_nope', newPassword: 'NewPassw0rd!e2e' },
+    });
+    const body = (await res.json()) as Envelope<null>;
+    expect(body.code).not.toBe(200); // "旧密码不正确"
+    expect(body.message).toContain('旧密码');
+  } finally {
+    await authed.dispose();
+  }
+
+  // The original password must still authenticate (nothing was changed).
+  const ctx = await apiContext(platformURL()!);
+  try {
+    const withOld = await ctx.post('/login', {
+      data: { email: creds.email, password: creds.password, terminal: 0 },
+    });
+    expect(((await withOld.json()) as Envelope<LoginVO>).code).toBe(200);
+  } finally {
+    await ctx.dispose();
+  }
+});
+
 // SO-API-009 (P1) — change password; new password works, old one no longer does.
 test('SO-API-009 change password succeeds', async () => {
   skipIfNoPlatform();

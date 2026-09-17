@@ -153,6 +153,33 @@ test('SO-UI-018 send image/file/voice message', async () => {
   );
 });
 
+// SO-UI-019 (P2) — group chat @-mention a member.
+// DEGRADED SKIP: the ChatAtBox popup is backed by the group member roster, which
+// the SPA loads over the IM WebSocket (`/ws`). That handshake does not complete
+// in this environment, so the `@`-triggered `.chat-at-box` renders empty and
+// stays hidden — the member picker cannot be driven. The @-message contract
+// (GroupMessageDTO.atUserIds) is exercised by the group send API (SO-API-050).
+test('SO-UI-019 group chat @ member', async () => {
+  test.skip(
+    true,
+    'ChatAtBox needs the group member roster loaded over the IM WebSocket (/ws), ' +
+      'whose handshake does not complete here; the at-box renders empty and hidden.',
+  );
+});
+
+// SO-UI-021 (P2) — start a voice/video call from the chat window.
+// DEGRADED SKIP: RtcPrivateVideo requires live getUserMedia (camera/microphone),
+// unavailable headless, and its `/webrtc/private/call` signal only succeeds with
+// a WS-connected callee (see SO-API-063) — neither is available in an automated
+// run, so the call panel cannot complete its flow.
+test('SO-UI-021 start voice/video call from chat window', async () => {
+  test.skip(
+    true,
+    'Call panel needs real getUserMedia (camera/mic) and a WS-connected callee ' +
+      'for /webrtc/private/call; neither is available headless (see SO-API-063).',
+  );
+});
+
 // SO-UI-020 (P1) — unauthenticated chat access is redirected to login via API 401/400.
 test('SO-UI-020 unauth chat access redirects to login', async ({ page }) => {
   skipIfNoSPA();

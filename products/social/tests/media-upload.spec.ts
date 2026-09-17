@@ -99,7 +99,27 @@ test('SO-API-056 upload image returns original and thumbnail', async () => {
   }
 });
 
-// SO-API-057 (P1) — file upload returns an access URL string.
+// SO-API-058 (P2) — an over-limit file upload is rejected (multipart max 50MB).
+// Live: a 55MB body -> HTTP 200 envelope {code:500,"系统繁忙..."} (the multipart
+// size guard trips before the upload succeeds), no URL returned.
+test('SO-API-058 oversized file upload is rejected', async () => {
+  skipIfNoPlatform();
+  test.slow(); // building + sending a 55MB body takes a while
+  const ctx = await apiContext(platformURL()!);
+  try {
+    const oversized = Buffer.alloc(55 * 1024 * 1024, 0x41); // 55MB > 50MB limit
+    const res = await ctx.post('/file/upload', {
+      multipart: {
+        file: { name: 'huge.bin', mimeType: 'application/octet-stream', buffer: oversized },
+      },
+    });
+    const body = (await res.json()) as Envelope<string | null>;
+    expect(body.code).not.toBe(200);
+    expect(body.data).toBeFalsy();
+  } finally {
+    await ctx.dispose();
+  }
+});
 test('SO-API-057 upload file returns a URL', async () => {
   skipIfNoPlatform();
   const ctx = await apiContext(platformURL()!);

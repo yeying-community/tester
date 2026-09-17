@@ -20,6 +20,11 @@ import { byId, openPopup, TEST_PASSWORD } from '../helpers/popup';
 // A syntactically-plausible but far-too-short phrase (2 words).
 const BAD_MNEMONIC = 'abandon ability';
 
+// A private key that is not 0x-prefixed hex — `importFromPrivateKey`'s guard
+// (`js/domain/wallet-domain.js`) throws '私钥格式无效，需要以 0x 开头' before
+// touching the keyring.
+const BAD_PRIVATE_KEY = 'not-a-valid-private-key';
+
 test('WL-UI-009: an invalid mnemonic is rejected and no wallet is created', async ({
   recorder,
 }) => {
@@ -44,6 +49,43 @@ test('WL-UI-009: an invalid mnemonic is rejected and no wallet is created', asyn
     await expect(byId(popup, 'globalToast')).toContainText('助记词无效', { timeout: 10_000 });
     await expect(byId(popup, 'importPage')).toBeVisible();
     await recorder.step(popup, '助记词被拒绝，停留在导入页');
+
+    // The wallet page must never appear (give any faulty async a beat).
+    await popup.waitForTimeout(1_500);
+    await expect(byId(popup, 'walletPage')).toBeHidden();
+  } finally {
+    await teardownWalletContext(ctx);
+  }
+});
+
+test('WL-UI-010: an invalid private key is rejected and no wallet is created', async ({
+  recorder,
+}) => {
+  const ctx = await loadWalletContext();
+  try {
+    await stubPublicEndpoints(ctx.context);
+    const popup = await openPopup(ctx.context, ctx.extensionId);
+
+    await byId(popup, 'welcomePage').waitFor({ state: 'visible' });
+    await byId(popup, 'welcomeImportWalletBtn').click();
+    await byId(popup, 'importPage').waitFor({ state: 'visible' });
+
+    // Switch to the private-key tab; its section is hidden until then.
+    await popup.locator('.import-tab[data-type=privateKey]').click();
+    await expect(popup.locator('.import-tab.active')).toHaveAttribute('data-type', 'privateKey');
+    await expect(popup.locator('#privateKeyImportSection')).toBeVisible();
+
+    await byId(popup, 'importPrivateKey').fill(BAD_PRIVATE_KEY);
+    await byId(popup, 'importAccountName').fill('Should Not Exist');
+    await byId(popup, 'importWalletPassword').fill(TEST_PASSWORD);
+    await recorder.step(popup, '填入非法私钥');
+    await byId(popup, 'importBtn').click();
+
+    // A rejection toast appears and we stay on the import page. The domain
+    // guard surfaces '私钥格式无效…' wrapped as '导入失败: …'.
+    await expect(byId(popup, 'globalToast')).toContainText('私钥格式无效', { timeout: 10_000 });
+    await expect(byId(popup, 'importPage')).toBeVisible();
+    await recorder.step(popup, '私钥被拒绝，停留在导入页');
 
     // The wallet page must never appear (give any faulty async a beat).
     await popup.waitForTimeout(1_500);

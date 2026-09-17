@@ -3,27 +3,29 @@
 > 测试人员视角整理的**应有** E2E 用例清单,作为实现依据。
 > 状态说明:✅ 已实现(链接到 spec) / ⬜ 待实现。
 > 端点:前端 8082 · 后端 8888(/api 代理) · 账号 SOCIAL_USER/SOCIAL_PASS
-> 最后更新:2026-09-16
+> 最后更新:2026-09-17
 
 ## 覆盖总览
 
 | 模块 | 用例数 | 已实现 | 待实现 |
 | --- | --- | --- | --- |
-| 一、登录与注册 | 10 | 8 | 2 |
+| 一、登录与注册 | 10 | 10 | 0 |
 | 二、鉴权与会话守卫 | 4 | 3 | 1 |
-| 三、SPA 登录界面(钱包 / 通行证) | 11 | 8 | 3 |
-| 四、Web3 身份认证(SIWE / web3-identity) | 9 | 7 | 2 |
-| 五、用户资料与搜索 | 5 | 4 | 1 |
-| 六、好友与联系人 | 5 | 4 | 1 |
-| 七、群组管理 | 10 | 9 | 1 |
-| 八、私聊消息 | 6 | 5 | 1 |
-| 九、群聊消息 | 6 | 5 | 1 |
-| 十、文件与媒体上传 | 3 | 2 | 1 |
-| 十一、AI 助手 | 3 | 0 | 3 |
-| 十二、音视频通话(RTC 信令) | 2 | 0 | 2 |
+| 三、SPA 登录界面(钱包 / 通行证) | 11 | 10 | 1 |
+| 四、Web3 身份认证(SIWE / web3-identity) | 9 | 9 | 0 |
+| 五、用户资料与搜索 | 5 | 5 | 0 |
+| 六、好友与联系人 | 5 | 5 | 0 |
+| 七、群组管理 | 10 | 10 | 0 |
+| 八、私聊消息 | 6 | 6 | 0 |
+| 九、群聊消息 | 6 | 6 | 0 |
+| 十、文件与媒体上传 | 3 | 3 | 0 |
+| 十一、AI 助手 | 3 | 3 | 0 |
+| 十二、音视频通话(RTC 信令) | 2 | 1 | 1 |
 | 十三、前端导航与聊天界面 | 10 | 7 | 3 |
 | 十四、服务探活与冒烟 | 3 | 3 | 0 |
-| **合计** | **87** | **65** | **22** |
+| **合计** | **87** | **81** | **6** |
+
+> 待实现的 6 项均为**已文档化的降级跳过(test.skip)**,而非缺失覆盖:SO-API-014(需服务端 HMAC 密钥伪造过期 JWT)、SO-UI-011(需外部通行证设备离线审批)、SO-API-063(需在线 WS 对端接听)、SO-UI-018(需真实麦克风 getUserMedia)、SO-UI-019(@ 成员名册依赖未完成的 IM WebSocket 握手)、SO-UI-021(需真实摄像头/麦克风 + 在线对端)。
 
 > 说明:Yeying Social 是仿微信的网页版即时通讯(IM)系统,后端 `platform` 模块(HTTP,8888)+ `server` 模块(Netty WebSocket 推送,8878)+ `rtc`(WebRTC 信令,8890)+ `web3-identity`(SIWE/UCAN,8901)。前端为 Vue 3 SPA(hash 路由,`createWebHashHistory`),经 8082 的 dev proxy 将 `/api/*` 代理到后端 `/*`(**直连后端 8888 时不带 `/api` 前缀**)。
 > 鉴权口径:登录成功返回 JWT 信封 `{accessToken, accessTokenExpiresIn, refreshToken, refreshTokenExpiresIn}`;受保护接口由 Spring MVC `AuthInterceptor` 校验,token 通过**自定义请求头 `accessToken`** 传递(**非** `Authorization: Bearer`)。公共放行路径:`/login`、`/register`、`/refreshToken`、`/*/upload`(即 `/image/upload`、`/file/upload`)、`/identity/login/*`、`/identity/callback`、swagger。前端 axios 拦截器在 401 时自动 `PUT /refreshToken` 续期,失败则重定向回 `/`。
@@ -100,7 +102,7 @@
 ### SO-API-008 缺失/非法 refreshToken 刷新失败
 - 优先级:P2
 - 类型:API
-- 状态:⬜ 待实现
+- 状态:✅ 已实现 — products/social/tests/auth-api.spec.ts(无头/伪造 refreshToken 均返回 code!=200 且 data 空)
 - 前置条件:无
 - 步骤:
   1. `PUT /refreshToken` 不带头或携带伪造的 refreshToken
@@ -119,7 +121,7 @@
 ### SO-API-010 修改密码旧密码错误被拒
 - 优先级:P2
 - 类型:API
-- 状态:⬜ 待实现
+- 状态:✅ 已实现 — products/social/tests/auth-api.spec.ts(错误 oldPassword 返回"旧密码不正确";原密码仍可登录,未变更)
 - 前置条件:已登录
 - 步骤:
   1. `PUT /modifyPwd` 提交错误 oldPassword
@@ -235,7 +237,7 @@
 ### SO-UI-008 点击钱包登录驱动 web3 provider 流程并优雅报错
 - 优先级:P2
 - 类型:UI
-- 状态:⬜ 待实现
+- 状态:✅ 已实现 — products/social/tests/spa-login.spec.ts(无 provider 点击后弹出 el-message"未检测到钱包插件",停留在 /login,无 pageerror 崩溃)
 - 前置条件:未注入钱包 provider(或注入 EIP-1193 shim)
 - 步骤:
   1. 点击 `.wallet-login-button`,观察 `walletLogin()`(`eth_requestAccounts` → identity presentation → verify)
@@ -244,7 +246,7 @@
 ### SO-UI-009 注册页表单渲染
 - 优先级:P2
 - 类型:UI
-- 状态:⬜ 待实现
+- 状态:✅ 已实现 — products/social/tests/spa-login.spec.ts(#/register 渲染 邮箱/昵称/密码/确认密码 表单 + 注册/清空 按钮 + "前往登录"链接)
 - 前置条件:SPA 可用(`/register` 仅可通过直接输入 hash 到达,登录页无入口链接)
 - 步骤:
   1. 访问 `#/register`
@@ -323,7 +325,7 @@
 ### SO-API-020 解绑钱包
 - 优先级:P2
 - 类型:API
-- 状态:⬜ 待实现
+- 状态:✅ 已实现 — products/social/tests/web3-auth.spec.ts(先 link 再 POST /auth/wallet/unlink 成功;无会话则被拒)
 - 前置条件:已绑定钱包
 - 步骤:
   1. `POST /auth/wallet/unlink` 提交 `WalletUnlinkDTO`
@@ -341,7 +343,7 @@
 ### SO-API-022 注销会话
 - 优先级:P2
 - 类型:API
-- 状态:⬜ 待实现
+- 状态:✅ 已实现 — products/social/tests/web3-auth.spec.ts(POST /api/v1/public/auth/logout 携 Bearer 返回 code:200)
 - 前置条件:已登录
 - 步骤:
   1. `POST /api/v1/public/auth/logout`
@@ -400,7 +402,7 @@
 ### SO-API-028 查询终端在线状态
 - 优先级:P2
 - 类型:API
-- 状态:⬜ 待实现
+- 状态:✅ 已实现 — products/social/tests/user-api.spec.ts(GET /user/terminal/online 返回 200 且 data 为数组;纯 HTTP 无 WS 时列表为空)
 - 前置条件:已登录,已知若干 userIds
 - 步骤:
   1. `GET /user/terminal/online?userIds=a,b,c`
@@ -451,7 +453,7 @@
 ### SO-API-033 好友免打扰开关
 - 优先级:P2
 - 类型:API
-- 状态:⬜ 待实现
+- 状态:✅ 已实现 — products/social/tests/friend-api.spec.ts(PUT /friend/dnd 开/关经 /friend/find 的 isDnd 回读校验往返)
 - 前置条件:已存在好友关系
 - 步骤:
   1. `PUT /friend/dnd` 提交 `FriendDndDTO`(开/关)
@@ -549,7 +551,7 @@
 ### SO-API-043 群免打扰开关
 - 优先级:P2
 - 类型:API
-- 状态:⬜ 待实现
+- 状态:✅ 已实现 — products/social/tests/group-api.spec.ts(PUT /group/dnd 开/关经 /group/find 的 isDnd 回读校验往返)
 - 前置条件:当前用户在某群内
 - 步骤:
   1. `PUT /group/dnd` 提交 `GroupDndDTO`(开/关)
@@ -608,7 +610,7 @@
 ### SO-API-049 查询最大已读消息 id
 - 优先级:P2
 - 类型:API
-- 状态:⬜ 待实现
+- 状态:✅ 已实现 — products/social/tests/message-history.spec.ts(GET /message/private/maxReadedId 返回 200 且 data 为数字指针;WS 驱动环境下 HTTP 落回 -1)
 - 前置条件:与好友有消息往来
 - 步骤:
   1. `GET /message/private/maxReadedId?friendId=<id>`
@@ -666,7 +668,7 @@
 ### SO-API-055 查询群消息已读用户
 - 优先级:P2
 - 类型:API
-- 状态:⬜ 待实现
+- 状态:✅ 已实现 — products/social/tests/message-history.spec.ts(B 标记已读后 GET /message/group/findReadedUsers 返回含 B.userId 的列表)
 - 前置条件:群消息带回执(群成员 ≤500)
 - 步骤:
   1. `GET /message/group/findReadedUsers?groupId=&messageId=`
@@ -697,7 +699,7 @@
 ### SO-API-058 超大文件上传被拒
 - 优先级:P2
 - 类型:API
-- 状态:⬜ 待实现
+- 状态:✅ 已实现 — products/social/tests/media-upload.spec.ts(55MB 文件上传返回 code!=200 且 data 空,越过 50MB multipart 上限)
 - 前置条件:准备 >50MB 文件(multipart 上限 50MB)
 - 步骤:
   1. `POST /file/upload` 上传超限文件
@@ -710,7 +712,7 @@
 ### SO-API-059 AI 改写消息
 - 优先级:P2
 - 类型:API
-- 状态:⬜ 待实现
+- 状态:✅ 已实现 — products/social/tests/ai-api.spec.ts(POST /ai/rewrite {text,style} 由本地 provider 返回改写文本;AI 默认启用 provider:"local")
 - 前置条件:已登录;`ai.enabled=true`(默认关闭,关闭时应返回禁用/降级响应)
 - 步骤:
   1. `POST /ai/rewrite` 提交 `AiRewriteDTO`(原文 + 风格)
@@ -719,7 +721,7 @@
 ### SO-API-060 AI 回复建议
 - 优先级:P2
 - 类型:API
-- 状态:⬜ 待实现
+- 状态:✅ 已实现 — products/social/tests/ai-api.spec.ts(POST /ai/reply/suggest 返回非空 suggestions 列表)
 - 前置条件:已登录;AI 已启用
 - 步骤:
   1. `POST /ai/reply/suggest` 提交 `AiSuggestReplyDTO`(近期消息)
@@ -728,7 +730,7 @@
 ### SO-API-061 AI 会话摘要
 - 优先级:P2
 - 类型:API
-- 状态:⬜ 待实现
+- 状态:✅ 已实现 — products/social/tests/ai-api.spec.ts(POST /ai/summary {content} 返回 summary 文本 + highlights/actionItems 数组)
 - 前置条件:已登录;AI 已启用
 - 步骤:
   1. `POST /ai/summary` 提交 `AiSummaryDTO`(会话消息集)
@@ -741,7 +743,7 @@
 ### SO-API-062 RTC 系统配置可达
 - 优先级:P2
 - 类型:API
-- 状态:⬜ 待实现
+- 状态:✅ 已实现 — products/social/tests/rtc-api.spec.ts(GET /system/config 携 accessToken 返回 webrtc 配置 iceServers;rtc 基址由 8888→8890 派生,不可达时干净跳过)
 - 前置条件:rtc 服务在 8890 可用
 - 步骤:
   1. `GET /system/config`
@@ -750,7 +752,7 @@
 ### SO-API-063 发起 1:1 通话信令
 - 优先级:P2
 - 类型:API
-- 状态:⬜ 待实现
+- 状态:⬜ 待实现(降级跳过)— products/social/tests/rtc-api.spec.ts(/webrtc/private/call 需将呼叫经 IM WebSocket 推给在线被叫,自动化 API 运行无在线 WS 对端,各变体均返回通用 500;test.skip 干净降级)
 - 前置条件:已登录,存在被叫好友
 - 步骤:
   1. `POST /webrtc/private/call?uid=<对方>&mode=<voice|video>`
@@ -830,7 +832,7 @@
 ### SO-UI-019 群聊 @ 成员
 - 优先级:P2
 - 类型:UI
-- 状态:⬜ 待实现
+- 状态:⬜ 待实现(降级跳过)— products/social/tests/nav-ui.spec.ts(ChatAtBox 弹窗依赖经 IM WebSocket(/ws)加载的群成员名册,该握手在本环境未完成,`@` 触发的 `.chat-at-box` 渲染为空且保持隐藏;@ 消息契约 GroupMessageDTO.atUserIds 由群发送 API 覆盖;test.skip 干净降级)
 - 前置条件:已认证会话,进入某群聊
 - 步骤:
   1. 在群聊输入框触发 `chat-at-box`(`ChatAtBox`)选择成员
@@ -850,7 +852,7 @@
 ### SO-UI-021 从聊天窗口发起语音/视频通话弹出通话面板
 - 优先级:P2
 - 类型:UI
-- 状态:⬜ 待实现
+- 状态:⬜ 待实现(降级跳过)— products/social/tests/nav-ui.spec.ts(RtcPrivateVideo 需真实 getUserMedia 摄像头/麦克风(headless 不可用),且 /webrtc/private/call 需在线 WS 被叫方(见 SO-API-063);test.skip 干净降级)
 - 前置条件:已认证会话,选中好友会话,rtc 服务可用
 - 步骤:
   1. 点击工具栏"语音通话"/"视频通话"(`showPrivateVideo('voice'|'video')`)

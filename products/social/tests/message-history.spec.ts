@@ -127,6 +127,18 @@ test.describe.serial('social private message history', () => {
     expect(body.code).toBe(200);
     expect(typeof body.data).toBe('number');
   });
+
+  // SO-API-049 — query the max read message id (read-receipt pointer).
+  // Served from Redis (IM_READED_POSITION); WS-driven in this environment, so it
+  // reads back the default (-1) over HTTP — we assert the endpoint is reachable
+  // and returns a numeric pointer.
+  test('SO-API-049 query max readed message id', async () => {
+    await sendPrivate(ctxA, B.userId, `maxread-${Date.now() % 100000}`);
+    const res = await ctxA.get(`/message/private/maxReadedId?friendId=${B.userId}`);
+    const body = (await res.json()) as Envelope<number>;
+    expect(body.code).toBe(200);
+    expect(typeof body.data).toBe('number');
+  });
 });
 
 test.describe.serial('social group message history', () => {
@@ -188,5 +200,23 @@ test.describe.serial('social group message history', () => {
     await sendGroup(ctxA, groupId, `gread-${Date.now() % 100000}`);
     const readed = await ctxB.put(`/message/group/readed?groupId=${groupId}`);
     expect(((await readed.json()) as Envelope<null>).code).toBe(200);
+  });
+
+  // SO-API-055 — query which users have read a specific group message.
+  // A sends a message, B marks the group read, then A queries the read list and
+  // finds B's id in it. (Receipt lists apply to groups of ≤500 members.)
+  test('SO-API-055 query group message readed users', async () => {
+    const sent = await sendGroup(ctxA, groupId, `greadusers-${Date.now() % 100000}`);
+    expect(sent.id).toBeGreaterThan(0);
+    const readed = await ctxB.put(`/message/group/readed?groupId=${groupId}`);
+    expect(((await readed.json()) as Envelope<null>).code).toBe(200);
+
+    const res = await ctxA.get(
+      `/message/group/findReadedUsers?groupId=${groupId}&messageId=${sent.id}`,
+    );
+    const body = (await res.json()) as Envelope<number[]>;
+    expect(body.code).toBe(200);
+    expect(Array.isArray(body.data)).toBe(true);
+    expect(body.data.map(Number)).toContain(B.userId);
   });
 });
