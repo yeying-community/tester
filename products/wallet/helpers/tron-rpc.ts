@@ -176,6 +176,9 @@ export async function routeTronNode(
           },
           raw_data_hex: '0a0200012202080000000000000000000000000000000000000000000000000000000000000000400a0000000000000000000000000000000000000000000000000000000000000000',
         };
+        // spec 用 captured.rawDataHex[lastIndex] 作 unsigned 参考；这里把
+        // createtransaction 的 raw_data_hex 也 push 进去。
+        captured.rawDataHex.push(String(body.raw_data_hex));
       }
     } else if (path.endsWith('/wallet/broadcasttransaction')) {
       const rawDataHex = String(payload?.raw_data_hex ?? '');
@@ -184,7 +187,9 @@ export async function routeTronNode(
         : payload?.signature
         ? [String(payload.signature)]
         : [];
-      captured.rawDataHex.push(rawDataHex);
+      // spec 用 captured.rawDataHex[lastIndex] 作 unsigned 参考（来自
+      // createtransaction response）；这里只 push signatures，不重复
+      // push raw_data_hex，避免覆盖 createtransaction push 的 unsigned。
       for (const sig of signature) captured.signatures.push(sig);
       const txid = options.txidFactory
         ? options.txidFactory(rawDataHex)
