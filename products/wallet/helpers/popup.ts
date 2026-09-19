@@ -33,6 +33,7 @@ export const SELECTORS = {
   setPasswordBtn: '#setPasswordBtn',
   passwordPromptInput: '#passwordPromptInput',
   passwordPromptConfirm: '#passwordPromptConfirm',
+  createWalletTypeTrigger: '#createWalletTypeTrigger',
 
   walletPage: '#walletPage',
   accountAddress: '#accountAddress',
@@ -48,7 +49,11 @@ export const SELECTORS = {
   accountSwitcherList: '#accountSwitcherList',
   manageAccountsBtn: '#manageAccountsBtn',
   accountsPage: '#accountsPage',
+  accountsMenu: '#accountsMenu',
+  accountsMenuBtn: '#accountsMenuBtn',
   walletList: '#walletList',
+  accountsCreateWalletBtn: '#accountsCreateWalletBtn',
+  accountsImportWalletBtn: '#accountsImportWalletBtn',
   createAccountModal: '#createAccountModal',
   newAccountName: '#newAccountName',
   confirmCreateAccount: '#confirmCreateAccount',
@@ -128,6 +133,22 @@ export const SELECTORS = {
   importWalletPassword: '#importWalletPassword',
   importBtn: '#importBtn',
   importAccountName: '#importAccountName',
+  privateKeyImportSection: '#privateKeyImportSection',
+
+  // Tron-specific UI surface (added in v1; secp256k1 second-chain support).
+  createWalletTypeSelect: '#createWalletTypeSelect',
+  createWalletTypeLabel: '#createWalletTypeLabel',
+  createWalletTypeMenu: '#createWalletTypeMenu',
+  tronCreateWalletFields: '#tronCreateWalletFields',
+  tronCreateNetworkTrigger: '#tronCreateNetworkTrigger',
+  tronCreateNetworkMenu: '#tronCreateNetworkMenu',
+  tronCreateNetworkLabel: '#tronCreateNetworkLabel',
+  tronCreateNetworkSelect: '#tronCreateNetworkSelect',
+  tronMnemonicTab: '#tronMnemonicTab',
+  tronPrivateKeyTab: '#tronPrivateKeyTab',
+  tronImportNetworkGroup: '#tronImportNetworkGroup',
+  tronImportNetworkSelect: '#tronImportNetworkSelect',
+  transferFeeEstimate: '#transferFeeEstimate',
 } as const;
 
 /** Open the main popup (380×600) and return the page. */
@@ -178,17 +199,45 @@ export async function createAndUnlockWallet(
  * Send a message to the extension's service worker from an extension page
  * (popup / approval). The SW's `chrome.runtime.onMessage` handler expects
  * `{ type, data }` and returns the handler's result object.
+ *
+ * Under parallel/headed load the SW can be cold: a freshly-opened popup
+ * posts `sendMessage` before the listener is bound and gets back `undefined`.
+ * `sendSw` here retries the message a few times with short backoff before
+ * giving up, so callers don't have to special-case the SW-cold-start window.
  */
 export async function sendSw<T = unknown>(
   page: Page,
   type: string,
   data: Record<string, unknown> = {},
+  opts: { retries?: number; delayMs?: number } = {},
 ): Promise<T> {
-  return page.evaluate(
+  const retries = opts.retries ?? 5;
+  const delayMs = opts.delayMs ?? 250;
+  let lastErr: unknown;
+  for (let i = 0; i < retries; i++) {
+    try {
+      const value = await page.evaluate(
+        async ({ type, data }) =>
+          (globalThis as any).chrome.runtime.sendMessage({ type, data }),
+        { type, data },
+      );
+      if (value !== undefined && value !== null) return value as T;
+    } catch (err) {
+      lastErr = err;
+    }
+    await page.waitForTimeout(delayMs);
+  }
+  // Final attempt — surface its value (possibly still undefined) for caller diagnostics.
+  const final = await page.evaluate(
     async ({ type, data }) =>
       (globalThis as any).chrome.runtime.sendMessage({ type, data }),
     { type, data },
-  ) as Promise<T>;
+  );
+  if (final !== undefined && final !== null) return final as T;
+  throw new Error(
+    `sendSw(${type}) got undefined after ${retries} retries (SW cold start?)` +
+      (lastErr ? ` — last error: ${String(lastErr)}` : ''),
+  );
 }
 
 export interface CustomNetworkSpec {

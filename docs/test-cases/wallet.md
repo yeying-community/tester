@@ -1,7 +1,7 @@
 # 钱包 Wallet — 端到端测试用例
 
 > 测试人员视角整理的**应有** E2E 用例清单,作为实现依据。
-> 状态说明:✅ 已实现(链接到 spec) / ⬜ 待实现。
+> 状态说明:✅ 已实现(链接到 spec) / ⬜ 待实现 / 🐞 已实现但被真实产品缺陷阻塞(`test.fixme`,产品修复后即恢复真跑)。
 > 形态:浏览器扩展(popup + service worker + dApp provider)。基于 MV3,名称「夜莺钱包 / YeYing Wallet」,rdns `io.github.yeying`。
 > 最后更新:2026-09-16
 
@@ -18,7 +18,10 @@
 | 七、消息签名与授权 | 5 | 5 | 0 |
 | 八、dApp 连接与 Provider | 13 | 13 | 0 |
 | 九、错误、异常与安全边界 | 4 | 4 | 0 |
-| **合计** | **56** | **56** | **0** |
+| 十、云端密钥托管与恢复 | 11 | 11 | 0 |
+| **合计** | **67** | **67** | **0** |
+
+> 文档与基线:wallet 云端密钥托管的可重复验收基线见钱包仓库 `docs/钱包测试/密钥托管验收标准.md`(CUST-001..072)。本节 CUST-* 用例覆盖其中 11 条**当前可在离线 stub 模式下跑通**的子集(配置、状态、启用/停用、密文与恢复读取完整性),步骤、断言以该基线为准;其余 CUST-* 用例(已绑定通行证下的整链开启 CUST-010/020..023、HD/私钥整链恢复 CUST-031/032、新设备通行证恢复 CUST-040..043、UCAN 权限边界 CUST-060..062、本地删除钱包后清理远端 CUST-072 等)仍 ⬜,前置条件为真实 Node/托管服务联调,在 tester 仓库环境变量未提供时不具备可重复执行条件。
 
 > 编号说明:`WL-UI-*` 为 popup 内交互;`WL-DAPP-*` 为经 `window.ethereum` / 审批窗的 dApp 交互;`WL-E2E-*` 为跨真实链/网络的端到端流程。
 > 通用前置(除特别说明外均适用):已通过 `WALLET_EXTENSION_PATH` 指向钱包源码目录;用 `loadWalletContext()` 启动带扩展的持久化 Chromium;`stubPublicEndpoints` 屏蔽 YeYing 公共端点以保证用例可离线运行。
@@ -111,9 +114,11 @@
 - 状态:✅ 已实现 — products/wallet/tests/popup-import-file.spec.ts
 - 前置条件:准备一份钱包导出的备份文件及其解密口令。
 - 步骤:
-  1. 进入 `#importPage`,点击「备份文件」tab(`.import-tab[data-type=file]`)。
-  2. 选择备份文件、输入口令并提交。
+  1. 进入 `#importPage`,点击外层「备份文件」来源 tab(`.import-source-tab[data-source=file]`),`#fileImportSection` 显示。
+  2. 选择备份文件、输入口令并提交(「导入备份」)。
 - 预期结果:成功恢复其中账户,落在 `#walletPage`,账户列表与备份一致。
+- **修复记录(云端恢复改造回归,已修)**:导入页改为「来源 tab(助记词/私钥·备份文件·云端恢复)+ 方式 tab(助记词/私钥)」两级后,`import-wallet-controller.js:handleImportWallet` 曾只按 `.import-method-tab.active`(默认恒为 mnemonic)推导 `importType`,从不根据 `source==='file'` 路由 → 点击「导入备份」实际走了助记词分支,因助记词为空报「请输入助记词」并返回。修复:`importType = source === 'file' ? 'file' : <方式 tab 类型>`,文件导入分支已完整支持(`importAccountsFile`)。修复后本用例移除 `test.fixme` 恢复真跑,导出→导入整程通过。
+
 
 ### WL-UI-009 导入非法助记词报错且不进入主页
 - 优先级:P1
@@ -611,3 +616,111 @@
 - 步骤:
   1. 在 `#unlockPage` 连续多次输入错误密码。
 - 预期结果:每次均提示「密码错误」且不清空输入;不因多次失败泄露信息或误解锁;如有节流/延迟策略则按策略生效。
+
+---
+
+## 十、云端密钥托管与恢复
+
+> 对应钱包仓库验收基线 `docs/钱包测试/密钥托管验收标准.md`。以下 11 条为**离线 stub 模式下可确定性跑通**的子集:自定义托管服务 `custody.e2e.test` 由 `helpers/custody.ts:stubCustody` 经 `context.route` 拦截(Playwright 在本 harness 下可拦截扩展 **service worker** 的 fetch),托管密文由扩展自身的 `encryptObject` 在页面内构造以保证与 SW 的 `decryptObject` 字节对齐;通过 `sendSw` 直接驱动 SW 消息总线。恢复读取用**恢复令牌**路径(未鉴权 `CustodyClient`,无需 UCAN/通行证/身份服务),完整性用例因此完全离线且确定。启用/停用用例依赖已创建并解锁的钱包 + stub HTTP(`ensureCustodyToken` 为纯本地 SIWE 签名)。
+
+### CUST-001 默认配置
+- 优先级:P0
+- 类型:API(SW)
+- 状态:✅ 已实现 — products/wallet/tests/custody-config.spec.ts:33
+- 前置条件:全新安装、无既有钱包。
+- 步骤:
+  1. `sendSw('CUSTODY_GET_SETTINGS')` 读取默认托管配置。
+- 预期结果:`endpoint==='https://node.yeying.pub'`;`ucanResource==='custody'`、`ucanAction==='write'` 固定;`enabled===false`;`lastBackupAt===''`、`lastStatus===null`(未开启)。
+
+### CUST-002 地址校验(配置弹窗)
+- 优先级:P1
+- 类型:UI
+- 状态:✅ 已实现 — products/wallet/tests/custody-config.spec.ts:55
+- 前置条件:钱包已创建并解锁。
+- 步骤:
+  1. 设置页 → `#custodyDetailBtn` → `#custodyConfigBtn` 打开 `#custodyConfigModal`。
+  2. `#custodyEndpointInput` 填非法 URL(`not a valid url`),`#custodySaveBtn` 保存。
+  3. 填合法且带多余末尾斜杠的 URL(`https://custody.example.com///`)保存。
+- 预期结果:非法 URL 被 `readCustodyForm`(`new URL()`)拒绝,弹窗保持打开、存储 endpoint 不变;合法 URL 保存后经 SW `normalizeEndpoint` 去除末尾 `/`(`https://custody.example.com`),弹窗关闭;`ucanResource/ucanAction` 不随地址编辑改变。
+
+### CUST-011 未绑定通行证开启被拒
+- 优先级:P0
+- 类型:API(SW)
+- 状态:✅ 已实现 — products/wallet/tests/custody-enable-disable.spec.ts:45
+- 前置条件:钱包已解锁;stub 托管状态 `passkeyBound:false`。
+- 步骤:
+  1. `sendSw('CUSTODY_ENABLE', { password, endpoint })`。
+- 预期结果:`success:false` 且错误含「打开托管服务前，请先绑定通行证」;**不发生** `POST /custody/secrets`(不上传密文);`settings.enabled` 保持 false。
+
+### CUST-012 锁定 + 错误密码开启被拒
+- 优先级:P0
+- 类型:API(SW)
+- 状态:✅ 已实现 — products/wallet/tests/custody-enable-disable.spec.ts:68
+- 前置条件:钱包已解锁后 `LOCK_WALLET` 锁定(清空 keyring 与密码缓存)。
+- 步骤:
+  1. 以**错误**密码 `sendSw('CUSTODY_ENABLE', { password, endpoint })`。
+- 预期结果:在读取密钥阶段即失败(`createWalletInstance` 解密失败),`success:false` 且错误为规范化「Invalid password / 密码错误」;托管主机**零 HTTP 请求**(证明本地 UCAN/解密门槛拦截,而非 stub-miss);`settings.enabled` 保持 false。
+- 备注:钱包解锁态下 keyring 会缓存已解锁账户,`getUnlockedCoordinatorSigningAccount` 不再校验密码,故错误密码用例必须先锁定钱包方能复现。
+
+### CUST-030 读取托管记录(恢复令牌)
+- 优先级:P0
+- 类型:API(SW)
+- 状态:✅ 已实现 — products/wallet/tests/custody-recovery-integrity.spec.ts:59
+- 前置条件:stub `GET /custody/recovery/secrets` 返回 1 条记录 + `identityDid`。
+- 步骤:
+  1. `sendSw('CUSTODY_LIST_SECRETS', { endpoint, recoveryToken })`。
+- 预期结果:`success:true`,`secrets.records` 含该 `walletId`,`identityDid` 透传;作为 stub 拦截 SW fetch 的正向对照。
+
+### CUST-050 密码错误恢复被拒
+- 优先级:P0
+- 类型:API(SW)
+- 状态:✅ 已实现 — products/wallet/tests/custody-recovery-integrity.spec.ts:83
+- 前置条件:以正确口令加密的有效 HD 密文置于恢复记录。
+- 步骤:
+  1. 以**错误**密码 `sendSw('CUSTODY_RESTORE_SECRET', { walletId, password, endpoint, recoveryToken })`。
+- 预期结果:`success:false` 且错误匹配 `/Invalid password or corrupted data/`(证明密文已取回并真正进入解密且失败,而非网络/stub-miss);不导入任何钱包(`GET_CURRENT_ACCOUNT` 地址为空)。
+
+### CUST-051 密文篡改被拒
+- 优先级:P0
+- 类型:API(SW)
+- 状态:✅ 已实现 — products/wallet/tests/custody-recovery-integrity.spec.ts:110
+- 前置条件:对有效密文中部翻转一字符(破坏 AES-GCM 认证)。
+- 步骤:
+  1. 以正确密码对被篡改密文发起恢复。
+- 预期结果:`success:false` 且错误匹配 `/Invalid password or corrupted data/`(GCM 认证失败同错误面);不导入任何钱包。
+
+### CUST-052 未知版本 / 字段缺失被拒
+- 优先级:P1
+- 类型:API(SW)
+- 状态:✅ 已实现 — products/wallet/tests/custody-recovery-integrity.spec.ts:141
+- 前置条件:构造 5 种结构缺陷密文(均以正确口令加密,能解密但结构非法)。
+- 步骤:
+  1. 逐一恢复:错误 version / 缺 wallet / 缺 accounts / 缺 identities / 缺 mnemonic。
+- 预期结果:前四者错误匹配 `/托管记录格式不受支持/`,缺 mnemonic 匹配 `/托管记录缺少助记词/`(证明 `validateCustodySecret` 真正执行);均不导入钱包。
+
+### CUST-053 地址不匹配被拒
+- 优先级:P1
+- 类型:API(SW)
+- 状态:✅ 已实现 — products/wallet/tests/custody-recovery-integrity.spec.ts:179
+- 前置条件:助记词有效但记录首账户地址填成另一地址(派生结果不匹配)。
+- 步骤:
+  1. 以正确密码发起恢复。
+- 预期结果:`success:false` 且错误含「地址校验失败」;不导入钱包。
+
+### CUST-070 正常关闭托管
+- 优先级:P0
+- 类型:API(SW)
+- 状态:✅ 已实现 — products/wallet/tests/custody-enable-disable.spec.ts:95
+- 前置条件:钱包已解锁;先 `CUSTODY_UPDATE_SETTINGS { enabled:true }`;stub `DELETE /custody/secrets/{walletId}` 返回 200。
+- 步骤:
+  1. `sendSw('CUSTODY_DISABLE', { endpoint })`。
+- 预期结果:`success:true`;`settings.enabled` 翻转为 false;恰好发生 1 次 `DELETE /custody/secrets/{walletId}`。
+
+### CUST-071 删除失败保留开启
+- 优先级:P1
+- 类型:API(SW)
+- 状态:✅ 已实现 — products/wallet/tests/custody-enable-disable.spec.ts:117
+- 前置条件:同 CUST-070,但 stub `DELETE` 返回 500。
+- 步骤:
+  1. 先置 `enabled:true`,再 `CUSTODY_DISABLE`。
+- 预期结果:`success:false`;`settings.enabled` **保持 true**(远端删除失败不得伪装为已关闭);失败的 `DELETE` 请求确已发出。

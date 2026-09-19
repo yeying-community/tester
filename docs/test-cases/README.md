@@ -11,7 +11,7 @@
 | 仓库 Warehouse | [warehouse.md](warehouse.md) | 91 | 91 | 0 | 100% |
 | 节点 Node | [node.md](node.md) | 50 | 46 | 4 | 92% |
 | 路由 Router | [router.md](router.md) | 79 | 65 | 14 | 82% |
-| 钱包 Wallet | [wallet.md](wallet.md) | 56 | 56 | 0 | 100% |
+| 钱包 Wallet | [wallet.md](wallet.md) | 67 | 67 | 0 | 100% |
 | 对话 Chat | [chat.md](chat.md) | 92 | 69 | 23 | 75% |
 | 社交 Social | [social.md](social.md) | 87 | 81 | 6 | 93% |
 | 项目 Project | [project.md](project.md) | 141 | 138 | 3 | 98% |
@@ -19,7 +19,7 @@
 | 智能体 Agent | [agent.md](agent.md) | 58 | 4 | 54 | 7% |
 | 应用市场 Marketplace | [marketplace.md](marketplace.md) | 59 | 59 | 0 | 100% |
 | 文档 Books | [books.md](books.md) | 35 | 32 | 3 | 91% |
-| **合计** | | **858** | **646** | **212** | **75%** |
+| **合计** | | **869** | **657** | **212** | **76%** |
 
 ## 使用方式
 
@@ -38,7 +38,7 @@
 
 **Router** — P0 + P1 + P2 已补齐(65/79):refresh 换发、大小写不敏感登录、充值余额汇总/批次/兑换记录、套餐预览、中继未实现边界 + 路由日志、侧栏/语言/模型/额度/套餐/账户设置 UI、改名与改密 E2E。剩余 14 条为环境受阻:外部支付订单全流转(top_up_mode=api,需真实外部单 + 回调)、令牌复制/编辑 UI(需已购模型才能建令牌)、DISABLE_OPENAI_COMPAT(需服务端重启切换)、auth 限流(DebugEnabled 短路)、未挂路由的死代码页(BalanceStatusPage/RedeemCodePage)。
 
-**Wallet** — P0 + P1 + P2 全量覆盖(56/56):非法私钥导入报错、收款二维码/导出账户、自定义网络增改删与默认网络切换、清空历史、通讯录、连续错误解锁的锁定处理;dApp 侧 ReCap(EIP-5573)/watchAsset(EIP-747)/accountsChanged、未连接 eth_accounts 返回空、审批窗关闭即视为拒绝、同源并发复用同一审批窗。(唯一跳过为既有的真实 Sepolia 广播用例。)
+**Wallet** — P0 + P1 + P2 全量覆盖(67/67):非法私钥导入报错、收款二维码/导出账户、自定义网络增改删与默认网络切换、清空历史、通讯录、连续错误解锁的锁定处理;dApp 侧 ReCap(EIP-5573)/watchAsset(EIP-747)/accountsChanged、未连接 eth_accounts 返回空、审批窗关闭即视为拒绝、同源并发复用同一审批窗。**新增云端密钥托管与恢复(模块十,11 条,CUST-*)**:自定义托管服务经 `context.route` 拦截扩展 service-worker 的 fetch,密文由扩展自身 `encryptObject` 在页面内构造(与 SW `decryptObject` 字节对齐),经 `sendSw` 驱动 SW 总线,全部离线确定跑通——默认配置口径、配置弹窗地址校验(非法拒绝/合法去尾斜杠)、未绑通行证/锁定+错误密码开启被拒(证明上传前拦截、零 HTTP)、恢复令牌读取记录、错误密码/密文篡改/未知版本字段缺失/地址不匹配四类完整性拒绝(均断言具体错误消息以防 stub-miss 造成假绿)、正常关闭发出恰一次 DELETE、删除失败保留 enabled=true 的回滚语义。整链联调用例(已绑通行证开启、HD/私钥整链恢复、新设备通行证恢复、UCAN 权限边界)因需真实 Node/托管服务,仍 ⬜。**修复了 1 处真实回归缺陷(直接改钱包仓库,已授权)**:WL-UI-008 备份文件导入 —— 导入页改为「来源 tab + 方式 tab」两级后,`import-wallet-controller.js:handleImportWallet` 曾只按方式 tab(默认恒为 mnemonic)推导 `importType`、从不根据 `source==='file'` 路由;改为 `importType = source==='file' ? 'file' : <方式 tab 类型>` 后,导出→导入整程通过,`test.fixme` 已移除恢复真跑。整套 `--project=wallet` 在 `PWWORKERS=2` 下 73 通过/2 跳过/0 失败(另有既有的真实 Sepolia 广播用例按余额条件跳过)。
 
 **Chat**(NextChat 定制版)— P0 + P1 + P2 大批补齐(69/92):健康/配置探针、钱包 SIWE→UCAN 登录准入与重定向/登出、侧栏/新建会话/技能 UI、会话列表/切换/搜索、Provider 代理边界、设置(主题/地址/重置/清除)、云同步与 WebDAV 代理白名单/透传、Router 令牌列表/选择/用量/充值跳转、发现/技能编辑器/插件/工具市场、图像页/历史、artifacts 分享边界。真实 SIWE→UCAN 登录成功进入应用外壳;无 provider key 且 Router 未充值时模型目录为空,授权用户落到 `/setup`,如实断言、未伪造流式回复。整套 `--project=chat` 在 `PWWORKERS=2` 下 52 通过/42 跳过/0 失败。剩余 23 条受阻:LLM 会话需真实 key/令牌(spec 就绪、有 key 即真跑);会话级置顶/访问码/自定义模型/系统提示模板等本构建特性缺失或位置不同;`needCode`/`HIDE_USER_API_KEY`/`ENABLE_TOOLS` 配置固定致触发态不可复现;UCAN 外部授权、STABILITY 出图、ShareGPT 外发需外部系统。**发现 2 处真实产品缺陷**(诚实断言边界、未修改产品仓库):① `app/api/[provider]` 与 `app/api/artifacts` 误用 `dynamic="force-static"` 却读请求 → 所有已识别 provider 与 artifacts POST/GET 均 500(仅未知 provider 分支正常);② WebDAV 代理未放行 PROPFIND(返回 403,与文档不符)。另记一处并发健壮性问题:共享钱包并发同步同一 WebDAV workspace 会偶发 WorkspaceSyncError(可恢复,已在 helper 重试)。
 

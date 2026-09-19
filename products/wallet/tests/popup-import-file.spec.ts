@@ -80,9 +80,14 @@ test('WL-UI-008: export an encrypted backup and restore it in a fresh wallet', a
     await byId(popupB, 'welcomeImportWalletBtn').click();
     await byId(popupB, 'importPage').waitFor({ state: 'visible' });
 
-    // Switch to the file tab; its section becomes visible.
-    await popupB.locator('.import-tab[data-type=file]').click();
-    await expect(popupB.locator('.import-tab.active')).toHaveAttribute('data-type', 'file');
+    // Switch to the file source tab; its section becomes visible.
+    // The import page now has two tab levels: an outer *source* tab
+    // (`.import-source-tab[data-source=wallet|file|custody]`) that chooses
+    // 助记词/私钥 vs 备份文件 vs 云端恢复, and an inner *method* tab
+    // (`.import-tab[data-type=mnemonic|privateKey]`) inside the wallet source.
+    // 备份文件 moved from an inner method tab to an outer source tab.
+    await popupB.locator('.import-source-tab[data-source=file]').click();
+    await expect(popupB.locator('.import-source-tab.active')).toHaveAttribute('data-source', 'file');
     await expect(popupB.locator('#fileImportSection')).toBeVisible();
 
     await popupB.locator('#importAccountsFile').setInputFiles(backupPath);
