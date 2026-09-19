@@ -70,8 +70,9 @@ test('WL-UI-010: an invalid private key is rejected and no wallet is created', a
     await byId(popup, 'welcomeImportWalletBtn').click();
     await byId(popup, 'importPage').waitFor({ state: 'visible' });
 
-    // Switch to the private-key tab; its section is hidden until then.
-    await popup.locator('.import-tab[data-type=privateKey]').click();
+    // Switch to the EVM private-key tab (Tron has its own tab with the
+    // same data-type); its section is hidden until then.
+    await popup.locator('.import-tab[data-type=privateKey][data-chain="evm"]').click();
     await expect(popup.locator('.import-tab.active')).toHaveAttribute('data-type', 'privateKey');
     await expect(popup.locator('#privateKeyImportSection')).toBeVisible();
 
