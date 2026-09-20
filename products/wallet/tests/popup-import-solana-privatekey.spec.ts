@@ -23,7 +23,7 @@ import { test, expect } from '../fixtures';
 
 import { loadWalletContext, teardownWalletContext } from '../helpers/extension';
 import { stubPublicEndpoints } from '../helpers/network';
-import { byId, openPopup } from '../helpers/popup';
+import { byId, openPopup, selectImportNetwork } from '../helpers/popup';
 import { sendSw } from '../helpers/popup';
 
 // Hardhat/Anvil account #0 — same vector used by the unit suite
@@ -43,17 +43,13 @@ test('import Solana private key lands on #walletPage with the expected base58 ad
     await byId(popup, 'welcomeImportWalletBtn').click();
     await byId(popup, 'importPage').waitFor({ state: 'visible' });
     await recorder.step(popup, '导入页', {
-      note: '新增 Solana 私钥 tab，与 Tron 私钥 tab 并列。',
+      note: '统一 UI：网络下拉 + 助记词/私钥 switch；选 Solana 即出现 mainnet/devnet/testnet。',
     });
 
-    // Click the Solana 私钥 tab — data-type="privateKey" + data-chain="solana".
-    await byId(popup, 'solanaPrivateKeyTab').click();
-    await expect(byId(popup, 'solanaPrivateKeyTab')).toHaveClass(/active/);
-    await expect(popup.locator('.import-method-tab.active')).toHaveAttribute('data-chain', 'solana');
-    await expect(popup.locator('.import-method-tab.active')).toHaveAttribute('data-type', 'privateKey');
+    // 选网络 = Solana，方法 = 私钥。
+    await selectImportNetwork(popup, 'solana', 'privateKey');
+    await expect(byId(popup, 'importReferenceGroup')).toBeVisible();
     await expect(byId(popup, 'privateKeyImportSection')).toBeVisible();
-    // The Solana network selector is only shown for Solana tabs.
-    await expect(byId(popup, 'solanaImportNetworkGroup')).toBeVisible();
 
     await byId(popup, 'importPrivateKey').fill(TEST_SOLANA_PRIVATE_KEY);
     await byId(popup, 'importAccountName').fill('E2E Solana PK');

@@ -19,7 +19,7 @@ import { test, expect } from '../fixtures';
 
 import { loadWalletContext, teardownWalletContext } from '../helpers/extension';
 import { stubPublicEndpoints } from '../helpers/network';
-import { byId, openPopup, sendSw } from '../helpers/popup';
+import { byId, openPopup, sendSw, selectImportNetwork } from '../helpers/popup';
 import { routeTronNode, TRON_MAINNET_RPC_URL, type TronRpcCapture } from '../helpers/tron-rpc';
 
 const TEST_TRON_PRIVATE_KEY =
@@ -45,7 +45,7 @@ test('transfer TRC20 USDT on Tron routes through the smart-contract path, not na
     await byId(popup, 'welcomePage').waitFor({ state: 'visible' });
     await byId(popup, 'welcomeImportWalletBtn').click();
     await byId(popup, 'importPage').waitFor({ state: 'visible' });
-    await byId(popup, 'tronPrivateKeyTab').click();
+    await selectImportNetwork(popup, 'tron', 'privateKey');
     await byId(popup, 'importPrivateKey').fill(TEST_TRON_PRIVATE_KEY);
     await byId(popup, 'importAccountName').fill('E2E TRC20 Sender');
     await byId(popup, 'importWalletPassword').fill(TEST_PASSWORD);

@@ -21,7 +21,7 @@ import { test, expect } from '../fixtures';
 
 import { loadWalletContext, teardownWalletContext } from '../helpers/extension';
 import { stubPublicEndpoints } from '../helpers/network';
-import { byId, openPopup, sendSw } from '../helpers/popup';
+import { byId, openPopup, sendSw, selectImportNetwork } from '../helpers/popup';
 
 const TEST_SOLANA_PRIVATE_KEY =
   '0xac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80';
@@ -38,7 +38,7 @@ test('Solana-mode fee estimate shows SOL units, not ETH', async ({ recorder }) =
     await byId(popup, 'welcomePage').waitFor({ state: 'visible' });
     await byId(popup, 'welcomeImportWalletBtn').click();
     await byId(popup, 'importPage').waitFor({ state: 'visible' });
-    await byId(popup, 'solanaPrivateKeyTab').click();
+    await selectImportNetwork(popup, 'solana', 'privateKey');
     await byId(popup, 'importPrivateKey').fill(TEST_SOLANA_PRIVATE_KEY);
     await byId(popup, 'importAccountName').fill('E2E Solana Fee');
     await byId(popup, 'importWalletPassword').fill(TEST_PASSWORD);

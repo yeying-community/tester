@@ -21,7 +21,7 @@ import { test, expect } from '../fixtures';
 
 import { loadWalletContext, teardownWalletContext } from '../helpers/extension';
 import { stubPublicEndpoints } from '../helpers/network';
-import { byId, openPopup, sendSw } from '../helpers/popup';
+import { byId, openPopup, sendSw, selectImportNetwork } from '../helpers/popup';
 
 // Hardhat/Anvil account #0 — same vector used by the Solana/Tron import specs.
 const TEST_BITCOIN_PRIVATE_KEY =
@@ -39,17 +39,13 @@ test('import Bitcoin private key lands on #walletPage with the expected P2WPKH a
     await byId(popup, 'welcomeImportWalletBtn').click();
     await byId(popup, 'importPage').waitFor({ state: 'visible' });
     await recorder.step(popup, '导入页', {
-      note: '新增 Bitcoin 私钥 tab，与 Tron / Solana 私钥 tab 并列。',
+      note: '统一 UI：网络下拉 + 助记词/私钥 switch；选 Bitcoin 即出现 mainnet/testnet。',
     });
 
-    // Click the Bitcoin 私钥 tab — data-type="privateKey" + data-chain="bitcoin".
-    await byId(popup, 'bitcoinPrivateKeyTab').click();
-    await expect(byId(popup, 'bitcoinPrivateKeyTab')).toHaveClass(/active/);
-    await expect(popup.locator('.import-method-tab.active')).toHaveAttribute('data-chain', 'bitcoin');
-    await expect(popup.locator('.import-method-tab.active')).toHaveAttribute('data-type', 'privateKey');
+    // 选网络 = Bitcoin，方法 = 私钥。
+    await selectImportNetwork(popup, 'bitcoin', 'privateKey');
+    await expect(byId(popup, 'importReferenceGroup')).toBeVisible();
     await expect(byId(popup, 'privateKeyImportSection')).toBeVisible();
-    // The Bitcoin network selector is only shown for Bitcoin tabs.
-    await expect(byId(popup, 'bitcoinImportNetworkGroup')).toBeVisible();
 
     await byId(popup, 'importPrivateKey').fill(TEST_BITCOIN_PRIVATE_KEY);
     await byId(popup, 'importAccountName').fill('E2E Bitcoin PK');

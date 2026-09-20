@@ -34,13 +34,11 @@ test('import mnemonic lands on #walletPage with the expected account address', a
     await byId(popup, 'welcomeImportWalletBtn').click();
     await byId(popup, 'importPage').waitFor({ state: 'visible' });
     await recorder.step(popup, '导入页', {
-      note: '默认在助记词 tab；可切换私钥 / Keystore。',
+      note: '默认助记词开关 + Ethereum 网络；可切换私钥 / Solana / Tron / Bitcoin。',
     });
 
-    // The mnemonic tab is active by default. If the wallet ever changes
-    // its default tab, assert the data-type instead of just clicking
-    // straight into the input.
-    await expect(popup.locator('.import-tab.active')).toHaveAttribute('data-type', 'mnemonic');
+    // 新 UI 默认 method=mnemonic, network=evm —— 仅断言默认 method 即足够防止回归。
+    await expect(popup.locator('.import-method-option.active')).toHaveAttribute('data-method', 'mnemonic');
 
     await byId(popup, 'importMnemonic').fill(TEST_MNEMONIC);
     await byId(popup, 'importAccountName').fill(TEST_WALLET_NAME);
