@@ -12,7 +12,13 @@
  */
 
 import { PRODUCT_NAMES, type ProductName } from '../shared/types';
-import { baseURLFor, baseURLKey, hasEnv, readEnvFile } from '../shared/env';
+import { activeEnvFilePath, baseURLFor, baseURLKey, hasEnv, readEnvFile } from '../shared/env';
+
+// Direct-file fallbacks read from whichever .env.<env> file was actually loaded
+// (see shared/env.ts). When none was found, these lookups simply return undefined.
+function readActiveEnvFile(key: string): string | undefined {
+  return activeEnvFilePath ? readEnvFile(activeEnvFilePath, key) : undefined;
+}
 
 interface Row {
   product: ProductName;
@@ -45,13 +51,13 @@ function resolveTarget(product: ProductName): { url: string | undefined; fsPath?
   if (product === 'marketplace') {
     return {
       url: undefined,
-      fsPath: process.env['MARKETPLACE_REPO_PATH'] ?? readEnvFile('.env', 'MARKETPLACE_REPO_PATH'),
+      fsPath: process.env['MARKETPLACE_REPO_PATH'] ?? readActiveEnvFile('MARKETPLACE_REPO_PATH'),
     };
   }
   if (product === 'books') {
     return {
       url: undefined,
-      fsPath: process.env['BOOKS_REPO_PATH'] ?? readEnvFile('.env', 'BOOKS_REPO_PATH'),
+      fsPath: process.env['BOOKS_REPO_PATH'] ?? readActiveEnvFile('BOOKS_REPO_PATH'),
     };
   }
   if (product === 'wallet') {
@@ -59,8 +65,8 @@ function resolveTarget(product: ProductName): { url: string | undefined; fsPath?
     const path =
       process.env['WALLET_EXTENSION_PATH'] ??
       process.env['WALLET_REPO_PATH'] ??
-      readEnvFile('.env', 'WALLET_REPO_PATH') ??
-      readEnvFile('.env', 'WALLET_EXTENSION_PATH');
+      readActiveEnvFile('WALLET_REPO_PATH') ??
+      readActiveEnvFile('WALLET_EXTENSION_PATH');
     return { url: undefined, fsPath: path };
   }
   return { url: undefined };
