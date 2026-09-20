@@ -149,6 +149,22 @@ export const SELECTORS = {
   tronImportNetworkGroup: '#tronImportNetworkGroup',
   tronImportNetworkSelect: '#tronImportNetworkSelect',
   transferFeeEstimate: '#transferFeeEstimate',
+
+  // Solana-specific UI surface (Tier 3; ed25519 third-chain support).
+  solanaPrivateKeyTab: '#solanaPrivateKeyTab',
+  solanaImportNetworkGroup: '#solanaImportNetworkGroup',
+  solanaImportNetworkSelect: '#solanaImportNetworkSelect',
+  solanaCreateNetworkTrigger: '#solanaCreateNetworkTrigger',
+  solanaCreateNetworkMenu: '#solanaCreateNetworkMenu',
+  solanaCreateNetworkSelect: '#solanaCreateNetworkSelect',
+
+  // Bitcoin-specific UI surface (Tier 3; bip122 UTXO chain, secp256k1 reuse).
+  bitcoinPrivateKeyTab: '#bitcoinPrivateKeyTab',
+  bitcoinImportNetworkGroup: '#bitcoinImportNetworkGroup',
+  bitcoinImportNetworkSelect: '#bitcoinImportNetworkSelect',
+  bitcoinCreateNetworkTrigger: '#bitcoinCreateNetworkTrigger',
+  bitcoinCreateNetworkMenu: '#bitcoinCreateNetworkMenu',
+  bitcoinCreateNetworkSelect: '#bitcoinCreateNetworkSelect',
 } as const;
 
 /** Open the main popup (380×600) and return the page. */
