@@ -68,6 +68,12 @@ export interface TronRpcCapture {
 export interface TronRpcStubOptions {
   /** What balance `getaccount` reports for the from-address. SUN units (1 TRX = 1e6 SUN). Default '0'. */
   balanceSun?: string;
+  /**
+   * TRC20 `balanceOf` return value as a raw base-unit integer (decimal
+   * string). Encoded as a 32-byte hex word in `constant_result` for
+   * `/wallet/triggerconstantcontract`. Default '0'.
+   */
+  trc20Balance?: string;
   /** Hex string used as the `txID` returned by broadcasttransaction. Default: deterministic sha256 of the raw data. */
   txidFactory?: (rawDataHex: string) => string;
   /** If set, `createtransaction` returns this error message instead of building a tx. */
@@ -180,6 +186,40 @@ export async function routeTronNode(
         // createtransaction 的 raw_data_hex 也 push 进去。
         captured.rawDataHex.push(String(body.raw_data_hex));
       }
+    } else if (path.endsWith('/wallet/triggerconstantcontract')) {
+      // TRC20 read-only call (balanceOf): return the balance as a 32-byte
+      // hex word in constant_result.
+      const raw = BigInt(options.trc20Balance ?? '0');
+      body = {
+        result: { result: true },
+        constant_result: [raw.toString(16).padStart(64, '0')],
+      };
+    } else if (path.endsWith('/wallet/triggersmartcontract')) {
+      // TRC20 transfer(address,uint256): return an unsigned tx wrapped under
+      // `.transaction`, mirroring TronGrid's shape. The adapter consumes
+      // `transaction.raw_data` + `raw_data_hex`, then signs + broadcasts.
+      const rawDataHex =
+        '0a0200012202080040f0c8b8e6e42e5a72081f12'
+        + '6e0a2a747970652e676f6f676c65617069732e636f6d2f70726f746f636f6c2e5472696767657253';
+      body = {
+        result: { result: true },
+        transaction: {
+          visible: true,
+          txID: '00'.repeat(32),
+          raw_data: {
+            contract: [
+              { parameter: { value: payload }, type: 'TriggerSmartContract' },
+            ],
+            ref_block_bytes: '0000',
+            ref_block_hash: '0000000000000000',
+            expiration: 1_700_000_000_000,
+            fee_limit: payload?.fee_limit ?? 15_000_000,
+            timestamp: 1_700_000_000_000,
+          },
+          raw_data_hex: rawDataHex,
+        },
+      };
+      captured.rawDataHex.push(rawDataHex);
     } else if (path.endsWith('/wallet/broadcasttransaction')) {
       const rawDataHex = String(payload?.raw_data_hex ?? '');
       const signature = Array.isArray(payload?.signature)

@@ -39,6 +39,15 @@ export interface SolanaRpcCapture {
 export interface SolanaRpcStubOptions {
   /** What balance `getBalance` reports for the queried address. Default '0'. */
   balanceLamports?: string;
+  /**
+   * Raw SPL token amount (base units) returned by `getTokenAccountsByOwner`
+   * for any mint. When set, the responder returns a single parsed token
+   * account whose `tokenAmount.amount` equals this string. Default: no
+   * accounts (balance 0).
+   */
+  splTokenAmount?: string;
+  /** Decimals reported in the parsed `tokenAmount`. Default 6 (USDC). */
+  splTokenDecimals?: number;
   /** If set, `sendTransaction` returns this string as the txid instead of the deterministic sha256. */
   txidFactory?: (base58Wire: string) => string;
   /** If set, every JSON-RPC call returns this error message. */
@@ -119,6 +128,39 @@ export async function routeSolanaNode(
         ? options.txidFactory(wire)
         : await sha256Hex(wire);
       body = { jsonrpc: '2.0', id: payload?.id, result: txid };
+    } else if (method === 'getTokenAccountsByOwner') {
+      // SPL balance path. Params: [owner, { mint }, { encoding: 'jsonParsed' }].
+      // Return a single parsed token account carrying `splTokenAmount` base
+      // units, or no accounts (balance 0) when unset.
+      const amount = options.splTokenAmount;
+      const decimals = options.splTokenDecimals ?? 6;
+      const value = amount == null
+        ? []
+        : [
+            {
+              pubkey: 'AtaAtaAtaAtaAtaAtaAtaAtaAtaAtaAtaAtaAtaAtaA1',
+              account: {
+                data: {
+                  parsed: {
+                    info: {
+                      tokenAmount: {
+                        amount: String(amount),
+                        decimals,
+                        uiAmountString: (Number(amount) / 10 ** decimals).toString(),
+                      },
+                    },
+                    type: 'account',
+                  },
+                  program: 'spl-token',
+                },
+              },
+            },
+          ];
+      body = {
+        jsonrpc: '2.0',
+        id: payload?.id,
+        result: { context: { slot: 1 }, value },
+      };
     } else {
       // Unknown RPC method — return an empty result so the wallet doesn't
       // crash on a stray fetch during setup.
