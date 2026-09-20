@@ -52,10 +52,19 @@ test('Solana-mode fee estimate shows SOL units, not ETH', async ({ recorder }) =
     await byId(popup, 'transferBtn').click();
     await byId(popup, 'transferPage').waitFor({ state: 'visible' });
 
+    // Fill a valid Solana recipient + amount so the fee estimate recomputes with
+    // the Solana chain reliably detected (on an empty form right after a
+    // programmatic SWITCH_NETWORK the client chain cache can still read as EVM
+    // until it warms, showing "-"). The Solana branch resolves to a fixed
+    // SOL-denominated placeholder — no RPC needed.
+    await byId(popup, 'recipientAddress').fill('9WzDXwBbmkg8ZTbNMqUxvQRAyrZzDsGYdLVL9zYtAWWM');
+    await byId(popup, 'amount').fill('0.1');
+
     await byId(popup, 'transferFeeEstimate').waitFor({ state: 'visible' });
     // The Solana branch short-circuits to a fixed SOL-denominated string
     // (5000 lamports per signature ≈ 0.000005 SOL).
     await expect(byId(popup, 'transferFeeEstimate')).toHaveText(/SOL/);
+    await expect(byId(popup, 'transferFeeEstimate')).not.toHaveText(/ETH|Gwei/);
     await recorder.step(popup, 'Solana 模式 fee 显示', {
       note: '5000 lamports / signature → ~0.000005 SOL。不走 ETH gas estimate。',
     });
