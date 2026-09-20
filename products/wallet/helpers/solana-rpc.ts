@@ -48,6 +48,13 @@ export interface SolanaRpcStubOptions {
   splTokenAmount?: string;
   /** Decimals reported in the parsed `tokenAmount`. Default 6 (USDC). */
   splTokenDecimals?: number;
+  /**
+   * Whether `getAccountInfo` reports the recipient's associated token account
+   * (ATA) as already existing. When false (default), the wallet prepends a
+   * CreateIdempotent instruction before the SPL transfer. Set true to simulate
+   * a recipient that already holds the mint.
+   */
+  splAtaExists?: boolean;
   /** If set, `sendTransaction` returns this string as the txid instead of the deterministic sha256. */
   txidFactory?: (base58Wire: string) => string;
   /** If set, every JSON-RPC call returns this error message. */
@@ -128,6 +135,19 @@ export async function routeSolanaNode(
         ? options.txidFactory(wire)
         : await sha256Hex(wire);
       body = { jsonrpc: '2.0', id: payload?.id, result: txid };
+    } else if (method === 'getAccountInfo') {
+      // ATA existence probe before an SPL transfer. `value: null` → account does
+      // not exist (wallet prepends CreateIdempotent); non-null → already exists.
+      body = {
+        jsonrpc: '2.0',
+        id: payload?.id,
+        result: {
+          context: { slot: 1 },
+          value: options.splAtaExists
+            ? { lamports: 2039280, owner: 'TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA', data: ['', 'base64'] }
+            : null,
+        },
+      };
     } else if (method === 'getTokenAccountsByOwner') {
       // SPL balance path. Params: [owner, { mint }, { encoding: 'jsonParsed' }].
       // Return a single parsed token account carrying `splTokenAmount` base
