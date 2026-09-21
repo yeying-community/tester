@@ -48,8 +48,32 @@ tester/
 ```bash
 pnpm install
 pnpm browsers:install
-cp .env.example .env       # tweak BASE_URL values to match your local setup
+cp .env.template .env.local   # tweak BASE_URL / path values to match your local setup
 ```
+
+## Environment selection (local / test / prod)
+
+Config is loaded from a single `.env.<env>` file chosen by the `TEST_ENV`
+variable (see `shared/env.ts`):
+
+- `TEST_ENV=local|test|prod` — load exactly `.env.<env>`; a missing file is a
+  hard error (so you never silently run against the wrong config).
+- `TEST_ENV` unset — cascade: the first of `.env.local` → `.env.test` →
+  `.env.prod` that exists wins. None existing is fine (CI sets vars directly).
+
+Only one file is ever loaded — it's a selection model, not layering. Compose
+the environment as an inline prefix on any existing script; no `--` needed:
+
+```bash
+pnpm test:wallet                  # default → .env.local
+TEST_ENV=test pnpm test:wallet    # → .env.test
+TEST_ENV=prod pnpm test:wallet    # → .env.prod
+TEST_ENV=test pnpm test:chat      # works for every product
+```
+
+(`npm run test:wallet` / `TEST_ENV=test npx playwright test --project=wallet`
+work identically.) The `.env.local` / `.env.test` / `.env.prod` files are all
+gitignored.
 
 ## Common commands
 
@@ -64,6 +88,9 @@ cp .env.example .env       # tweak BASE_URL values to match your local setup
 | `pnpm lint` / `pnpm format`  | eslint / prettier                                     |
 | `pnpm report`                | open the last HTML report                             |
 | `pnpm clean`                 | remove reports, results, tsbuildinfo                  |
+
+> Prefix any of the above with `TEST_ENV=local|test|prod` to pick the config
+> file — see [Environment selection](#environment-selection-local--test--prod).
 
 ## Verifying the scaffold without real services
 
