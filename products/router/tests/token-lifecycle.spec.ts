@@ -65,7 +65,9 @@ test('create an API token through the workspace, then delete it', async ({
   try {
     // --- Open the create-token page ----------------------------------------
     await page.goto(`${baseURL}/workspace/token`, { waitUntil: 'domcontentloaded' });
-    await page.getByRole('button', { name: /新增令牌|Add Token/ }).click();
+    // Two "新增令牌/Add Token" buttons exist (page header + empty-table CTA);
+    // the page-level one is first in the DOM.
+    await page.getByRole('button', { name: /新增令牌|Add Token/ }).first().click();
 
     const nameInput = page.getByPlaceholder(/请输入名称|Please enter name/);
     await nameInput.waitFor({ state: 'visible', timeout: 15_000 });

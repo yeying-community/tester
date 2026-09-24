@@ -88,7 +88,7 @@ test('the account setting page shows the account info (RT-UI-026)', async ({
   await page.goto(`${baseURL}/workspace/setting`, { waitUntil: 'domcontentloaded' });
 
   // The account-info section header + rows render.
-  await expect(page.getByText(/账户信息|Account Info/).first()).toBeVisible({ timeout: 15_000 });
+  await expect(page.getByText(/账户信息|Account info/i).first()).toBeVisible({ timeout: 15_000 });
 
   // The wallet-address row is a read-only input pre-filled with the 0x address.
   const addrInput = page
@@ -103,7 +103,7 @@ test('the account setting page shows the account info (RT-UI-026)', async ({
   expect((await nameInput.inputValue()).trim().length).toBeGreaterThan(0);
 
   // The change-password entry is present.
-  await expect(page.getByRole('button', { name: /修改密码|Change Password/ }).first()).toBeVisible();
+  await expect(page.getByRole('button', { name: /修改密码|Change password/i }).first()).toBeVisible();
   await recorder.step(page, '账户设置页展示账户信息');
 });
 
@@ -180,7 +180,7 @@ test('the change-password modal round-trips (wrong current password) (RT-E2E-005
   await seedWalletSession(page, baseURL!, envFor('router')['ROUTER_WALLET_PRIVATE_KEY']!);
   await page.goto(`${baseURL}/workspace/setting`, { waitUntil: 'domcontentloaded' });
 
-  await page.getByRole('button', { name: /修改密码|Change Password/ }).first().click();
+  await page.getByRole('button', { name: /修改密码|Change password/i }).first().click();
 
   const modal = page.locator('.ant-modal, [role=dialog]').first();
   await expect(modal).toBeVisible({ timeout: 10_000 });
