@@ -93,7 +93,18 @@ const EXTRA_KEYS: Record<ProductName, string[]> = {
     'WAREHOUSE_EXPECTED_ADDRESS',
   ],
   node: ['NODE_API_URL', 'NODE_WALLET_PRIVATE_KEY', 'NODE_EXPECTED_ADDRESS'],
-  router: ['ROUTER_WALLET_PRIVATE_KEY', 'ROUTER_EXPECTED_ADDRESS'],
+  router: [
+    'ROUTER_WALLET_PRIVATE_KEY',
+    'ROUTER_EXPECTED_ADDRESS',
+    // Admin/root wallet (must be in the deployment's bootstrap.root_wallet_address).
+    // Consumed by the channel/provider admin specs via acquireAdminToken.
+    'ROUTER_ADMIN_PRIVATE_KEY',
+    'ROUTER_ADMIN_EXPECTED_ADDRESS',
+    // Personal-provider (BYOK) upstream used by personal-provider routing specs.
+    'ROUTER_PERSONAL_UPSTREAM_BASE_URL',
+    'ROUTER_PERSONAL_UPSTREAM_KEY',
+    'ROUTER_PERSONAL_UPSTREAM_MODEL',
+  ],
   chat: ['OPENAI_API_KEY', 'ANTHROPIC_API_KEY'],
   social: [
     'SOCIAL_USER',

@@ -94,3 +94,21 @@ export async function acquireRouterToken(baseURL: string): Promise<RouterTokens>
   }
   return loginWithWallet(baseURL, env['ROUTER_WALLET_PRIVATE_KEY']!);
 }
+
+/**
+ * Acquire a JWT for the admin/root wallet (`ROUTER_ADMIN_PRIVATE_KEY`).
+ *
+ * The wallet whose address is listed in the router deployment's
+ * `bootstrap.root_wallet_address` logs in as `RoleRootUser` (100), which
+ * satisfies both `AdminAuth` (≥10) and `RootAuth` (100). Admin-only channel /
+ * provider endpoints under `/api/v1/admin/*` require this token — the ordinary
+ * `ROUTER_WALLET_PRIVATE_KEY` account is a `RoleCommonUser` and is rejected
+ * with `{success:false, message:"无权进行此操作，权限不足"}`.
+ */
+export async function acquireAdminToken(baseURL: string): Promise<RouterTokens> {
+  const env = envFor('router');
+  if (!env['ROUTER_ADMIN_PRIVATE_KEY']) {
+    throw new Error('ROUTER_ADMIN_PRIVATE_KEY is required to acquire a router admin JWT');
+  }
+  return loginWithWallet(baseURL, env['ROUTER_ADMIN_PRIVATE_KEY']!);
+}

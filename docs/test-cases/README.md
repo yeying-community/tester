@@ -10,7 +10,7 @@
 | --- | --- | ---: | ---: | ---: | ---: |
 | 仓库 Warehouse | [warehouse.md](warehouse.md) | 91 | 91 | 0 | 100% |
 | 节点 Node | [node.md](node.md) | 50 | 46 | 4 | 92% |
-| 路由 Router | [router.md](router.md) | 79 | 65 | 14 | 82% |
+| 路由 Router | [router.md](router.md) | 97 | 81 | 16 | 84% |
 | 钱包 Wallet | [wallet.md](wallet.md) | 67 | 67 | 0 | 100% |
 | 对话 Chat | [chat.md](chat.md) | 92 | 69 | 23 | 75% |
 | 社交 Social | [social.md](social.md) | 87 | 81 | 6 | 93% |
@@ -19,7 +19,7 @@
 | 智能体 Agent | [agent.md](agent.md) | 58 | 4 | 54 | 7% |
 | 应用市场 Marketplace | [marketplace.md](marketplace.md) | 59 | 59 | 0 | 100% |
 | 文档 Books | [books.md](books.md) | 35 | 32 | 3 | 91% |
-| **合计** | | **869** | **657** | **212** | **76%** |
+| **合计** | | **887** | **673** | **214** | **76%** |
 
 ## 使用方式
 
@@ -36,7 +36,7 @@
 
 **Node** — P0 + P1 + P2 已补齐(46/50):healthCheck 别名、verify 负路径、身份状态、Passkey 注册(CDP 虚拟认证器跑真实 WebAuthn 仪式)、i18n 与应用检索 UI。剩余 4 条受阻:就绪 503(需非破坏性地制造共享 DB 故障)、下线恢复(需先有已审核上线的应用)、审核发布全链路 ND-E2E-003/004(需管理员审批人 ADMIN_DIDS)。
 
-**Router** — P0 + P1 + P2 已补齐(65/79):refresh 换发、大小写不敏感登录、充值余额汇总/批次/兑换记录、套餐预览、中继未实现边界 + 路由日志、侧栏/语言/模型/额度/套餐/账户设置 UI、改名与改密 E2E。剩余 14 条为环境受阻:外部支付订单全流转(top_up_mode=api,需真实外部单 + 回调)、令牌复制/编辑 UI(需已购模型才能建令牌)、DISABLE_OPENAI_COMPAT(需服务端重启切换)、auth 限流(DebugEnabled 短路)、未挂路由的死代码页(BalanceStatusPage/RedeemCodePage)。
+**Router** — P0 + P1 + P2 已补齐(81/97):refresh 换发、大小写不敏感登录、充值余额汇总/批次/兑换记录、套餐预览、中继未实现边界 + 路由日志、侧栏/语言/模型/额度/套餐/账户设置 UI、改名与改密 E2E。**新增模块十一「个人供应商路由(BYOK)」(9 条 API,用户级、`ROUTER_WALLET_PRIVATE_KEY` 即可真跑)**:连接 CRUD 且凭证只写不回显(断言响应体无明文 key、无 `api_key`/`key` 字段)、Base URL SSRF 七类拒绝(HTTPS/localhost/内网/用户信息/查询串/片段各断言精确报文)、协议白名单、名称/模型/畸形 JSON 校验、模型路由 upsert/list/delete + 非法策略「路由策略无效」/范围外「模型不在当前账号可用范围内」/重复删除 `personal_model_route_not_found`、routing-quota 无限次请求计量形态、缺失连接受控 not-found、未鉴权 401。**新增模块十二「渠道与供应商管理(管理员)」(7 条 API,需 `ROUTER_ADMIN_PRIVATE_KEY` 在 `bootstrap.root_wallet_address`)**:渠道 CRUD(全程用 `status:2` 停用态+`finally` 硬删,零路由爆炸半径)且 key 读取脱敏、删除幂等、标识空/重名/畸形 JSON 校验、列表分页与 compact 四字段投影、测试「未找到可用于测试的模型」/刷新「不支持的刷新动作」/模型与测试子资源空页契约、缺失渠道 not-found、供应商目录与缺失「供应商不存在」、普通用户 200「权限不足」+ 匿名 401 的鉴权边界。整套新增 16 条在本地 router 上 `PWWORKERS=2` 全绿(个人供应商 9 + 渠道 7)。剩余 ⬜:RT-API-058 经个人供应商中继补全(**发现产品边界:合成个人渠道未持久化 `meta.ChannelModelConfigs`,`resolveChannelTextUpstream` 返回 503 `unsupported_channel_endpoint`,已如实记录待产品确认**)、RT-API-061 渠道启用态选路(共享服务爆炸半径,暂缓),以及原有受阻的外部支付/令牌 UI/DISABLE_OPENAI_COMPAT/限流/死代码页等。**router 前端 2026-09-24 大改导致的 7 条既有 UI spec 回归已同日全部修复**:workspace-nav 侧栏 4 项标签按现 i18n 改用 `可用模型 / 令牌 / 我的供应商 / 额度`,`/workspace/entry` 因账户有套餐/余额落到 `/workspace/topup?tab=quota` 而非旧定价页;workspace 额度卡片现 5 张(断言 `>=3` 可见)、新增令牌存在「页头 + 空表 CTA」两枚按钮故统一 `.first()`、用户态 `/workspace/log` 不再渲染管理员专属的「路由异常概览」标题改断言 `.router-log-table`、支付记录由独立链接变页内 tab → 改 `getByRole('tab', ...)`;user-account 「账户信息 / 修改密码」i18n 实为小写 `Account info / Change password` 已加 `/i`;token-lifecycle 同上 `.first()` 收紧。整套 `--project=router` 在 `PWWORKERS=2` 下 76 通过 / 15 跳过 / 0 失败,跨多轮重跑确定。
 
 **Wallet** — P0 + P1 + P2 全量覆盖(67/67):非法私钥导入报错、收款二维码/导出账户、自定义网络增改删与默认网络切换、清空历史、通讯录、连续错误解锁的锁定处理;dApp 侧 ReCap(EIP-5573)/watchAsset(EIP-747)/accountsChanged、未连接 eth_accounts 返回空、审批窗关闭即视为拒绝、同源并发复用同一审批窗。**新增云端密钥托管与恢复(模块十,11 条,CUST-*)**:自定义托管服务经 `context.route` 拦截扩展 service-worker 的 fetch,密文由扩展自身 `encryptObject` 在页面内构造(与 SW `decryptObject` 字节对齐),经 `sendSw` 驱动 SW 总线,全部离线确定跑通——默认配置口径、配置弹窗地址校验(非法拒绝/合法去尾斜杠)、未绑通行证/锁定+错误密码开启被拒(证明上传前拦截、零 HTTP)、恢复令牌读取记录、错误密码/密文篡改/未知版本字段缺失/地址不匹配四类完整性拒绝(均断言具体错误消息以防 stub-miss 造成假绿)、正常关闭发出恰一次 DELETE、删除失败保留 enabled=true 的回滚语义。整链联调用例(已绑通行证开启、HD/私钥整链恢复、新设备通行证恢复、UCAN 权限边界)因需真实 Node/托管服务,仍 ⬜。**修复了 1 处真实回归缺陷(直接改钱包仓库,已授权)**:WL-UI-008 备份文件导入 —— 导入页改为「来源 tab + 方式 tab」两级后,`import-wallet-controller.js:handleImportWallet` 曾只按方式 tab(默认恒为 mnemonic)推导 `importType`、从不根据 `source==='file'` 路由;改为 `importType = source==='file' ? 'file' : <方式 tab 类型>` 后,导出→导入整程通过,`test.fixme` 已移除恢复真跑。整套 `--project=wallet` 在 `PWWORKERS=2` 下 73 通过/2 跳过/0 失败(另有既有的真实 Sepolia 广播用例按余额条件跳过)。
 
