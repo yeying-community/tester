@@ -49,8 +49,9 @@ test('import private key lands on #walletPage with the expected account address'
       note: '切换到「私钥」tab 后可粘贴单个账户私钥导入。',
     });
 
-    // Switch to the private-key tab. The section is hidden until then.
-    await popup.locator('.import-tab[data-type=privateKey]').click();
+    // Switch to the EVM private-key tab (Tron has its own tab with the
+    // same data-type). The section is hidden until then.
+    await popup.locator('.import-tab[data-type=privateKey][data-chain="evm"]').click();
     await expect(popup.locator('.import-tab.active')).toHaveAttribute('data-type', 'privateKey');
     await expect(popup.locator('#privateKeyImportSection')).toBeVisible();
 
