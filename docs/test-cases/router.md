@@ -3,7 +3,7 @@
 > 测试人员视角整理的**应有** E2E 用例清单,作为实现依据。
 > 状态说明:✅ 已实现(链接到 spec) / ⬜ 待实现。
 > 端点:admin UI + API 3011(内嵌 Go 二进制)· 自定义 SIWE
-> 最后更新:2026-09-17
+> 最后更新:2026-09-26
 
 ## 覆盖总览
 
@@ -19,7 +19,10 @@
 | 八、余额与兑换码 | 5 | 3 | 2 |
 | 九、个人中心与账户设置 | 5 | 5 | 0 |
 | 十、OpenAI 兼容模型与中继 | 6 | 5 | 1 |
-| **合计** | **79** | **65** | **14** |
+| 十一、个人供应商路由(BYOK) | 10 | 9 | 1 |
+| 十二、渠道与供应商管理(管理员) | 8 | 7 | 1 |
+| 十三、钱包身份登录(真实 Node + Mailpit) | 2 | 1 | 1 |
+| **合计** | **99** | **82** | **17** |
 
 > 说明:Router 单一 Go 二进制在 `:3011` 上同时提供内嵌 React 管理后台与 API。
 > 钱包是唯一登录方式(`password_login_enabled=false`、`password_register_enabled=false`)。
@@ -28,6 +31,8 @@
 > **混合信封**是本产品的核心测试点:`/auth/verify` 用 `{success, data, message}`,
 > `/profile`、`/user/*` 用 SDK 信封 `{code, data, message, timestamp}`。
 > 环境变量:`ROUTER_BASE_URL`(默认 `http://localhost:3011`)、`ROUTER_WALLET_PRIVATE_KEY`、`ROUTER_EXPECTED_ADDRESS`。
+> 模块十一/十二新增:`ROUTER_ADMIN_PRIVATE_KEY`(地址须在部署的 `bootstrap.root_wallet_address`,用于管理员/渠道用例)、
+> `ROUTER_ADMIN_EXPECTED_ADDRESS`、`ROUTER_PERSONAL_UPSTREAM_BASE_URL`/`_KEY`/`_MODEL`(个人供应商 BYOK 上游)。
 
 ---
 
@@ -803,3 +808,222 @@
 - 步骤:
   1. GET `/api/v1/public/log`(UserAuth)查询本用户日志。
 - 预期结果:列表返回 `success=true`、含分页 `meta` 与数组;有记录时 `/log/:id` 可查看单条详情,无记录时 `/log/nonexistent` 返回受控“日志不存在”。当前账号无真实中继调用(外部支付边界),按日志结构与详情/不存在两分支断言契约。
+
+---
+
+## 十一、个人供应商路由(BYOK)
+
+> 个人供应商 = 普通用户自带上游(bring-your-own-key),用户级、非管理员、无功能开关。
+> 端点在 `/api/v1/public/personal-provider/*`(`UserAuth`),连接只属于单个 `user_id`,
+> 不进入运营 `channels` 表,以合成渠道 `personal:<连接ID>` 参与路由(默认策略 `personal_first`)。
+> 信封 `{success, message, data}`;多数逻辑失败为 HTTP 200 + `success:false`,报文格式错误 400,未鉴权 401。
+> 凭证(`api_key`)只写不回显:响应仅暴露 `credential_configured` 布尔,永不回显密钥。
+> 备注:连接 ID 为 char36 尾部补空格(`"…ed    "`),用于 URL 前须 `.trim()`。
+
+### RT-API-049 个人供应商连接 CRUD 全程,凭证只写不回显
+- 优先级:P0
+- 类型:API
+- 状态:✅ 已实现 — products/router/tests/personal-provider.spec.ts
+- 前置条件:持有普通用户 JWT(`ROUTER_WALLET_PRIVATE_KEY`)。
+- 步骤:
+  1. POST `/connections` 建连接(带 `api_key`);GET 列表/单条;PUT 改名(空 `api_key`);DELETE。
+- 预期结果:创建返回 `{credential_configured:true}` 且响应体不含明文密钥、无 `api_key`/`key` 字段;
+  列表含该连接且不泄露密钥;空 `api_key` 更新保留原凭证、`status:0` 保留原启用态;删除成功后列表不再含之。
+
+### RT-API-050 创建必须提供 api_key
+- 优先级:P1
+- 类型:API
+- 状态:✅ 已实现 — products/router/tests/personal-provider.spec.ts
+- 前置条件:持有普通用户 JWT。
+- 步骤:
+  1. POST `/connections`,`api_key` 为空。
+- 预期结果:`success:false`,报文精确为「API Key 不能为空」。
+
+### RT-API-051 Base URL SSRF 防护
+- 优先级:P0
+- 类型:API
+- 状态:✅ 已实现 — products/router/tests/personal-provider.spec.ts
+- 前置条件:持有普通用户 JWT。
+- 步骤:
+  1. 分别以 `http://`、`localhost`、`127.0.0.1`、`10.x`、含用户信息、含查询串、含片段的 Base URL 创建连接。
+- 预期结果:全部在创建时被拒(未接触上游),各自命中精确报文:仅支持 HTTPS / 不允许使用 localhost /
+  内网保留地址 / 不允许包含用户信息 / 不允许包含查询参数 / 不允许包含片段。空 Base URL 允许(走协议默认端点)。
+
+### RT-API-052 协议白名单
+- 优先级:P1
+- 类型:API
+- 状态:✅ 已实现 — products/router/tests/personal-provider.spec.ts
+- 前置条件:持有普通用户 JWT。
+- 步骤:
+  1. 依次用 openai/anthropic/gemini/ali/deepseek 创建;再用未知协议创建。
+- 预期结果:白名单协议均成功;未知协议 `success:false`、报文「个人供应商协议不受支持」。
+
+### RT-API-053 字段校验(名称/模型/报文格式)
+- 优先级:P1
+- 类型:API
+- 状态:✅ 已实现 — products/router/tests/personal-provider.spec.ts
+- 前置条件:持有普通用户 JWT。
+- 步骤:
+  1. 空名称、空模型数组、畸形 JSON 分别创建。
+- 预期结果:「连接名称不能为空」/「至少选择一个模型」/ HTTP 400「请求格式无效」。
+
+### RT-API-054 模型路由规则 upsert/list/delete + 策略与范围校验
+- 优先级:P1
+- 类型:API
+- 状态:✅ 已实现 — products/router/tests/personal-provider.spec.ts
+- 前置条件:持有普通用户 JWT;已有一条列出该模型的连接。
+- 步骤:
+  1. PUT `/model-routes` 合法策略;非法策略;范围外模型;GET 列表;DELETE;再 DELETE。
+- 预期结果:合法成功;非法策略「路由策略无效」;范围外「模型不在当前账号可用范围内」;
+  列表含该规则;删除成功;重复删除 `code:"personal_model_route_not_found"`、报文「模型路由规则不存在或无权访问」。
+
+### RT-API-055 路由额度(routing-quota)形态
+- 优先级:P2
+- 类型:API
+- 状态:✅ 已实现 — products/router/tests/personal-provider.spec.ts
+- 前置条件:持有普通用户 JWT。
+- 步骤:
+  1. GET `/routing-quota`。
+- 预期结果:`{unit:"request", unlimited:true, period:"YYYY-MM", used_requests:<number>, included_requests}`。
+  个人调用绕过货币额度/计费(`UpstreamSource=personal_provider`)。
+
+### RT-API-056 归属隔离:缺失/他人连接受控 not-found
+- 优先级:P1
+- 类型:API
+- 状态:✅ 已实现 — products/router/tests/personal-provider.spec.ts
+- 前置条件:持有普通用户 JWT。
+- 步骤:
+  1. 对不存在的连接 ID 执行 GET/PUT/DELETE。
+- 预期结果:均 `success:false`、`code:"personal_provider_not_found"`、报文「个人供应商连接不存在或无权访问」;不泄露、不 5xx。
+
+### RT-API-057 个人供应商端点需鉴权
+- 优先级:P1
+- 类型:API
+- 状态:✅ 已实现 — products/router/tests/personal-provider.spec.ts
+- 前置条件:服务可达。
+- 步骤:
+  1. 无 token GET `/connections`、`/model-routes`、`/routing-quota`。
+- 预期结果:均 HTTP 401。
+
+### RT-API-058 经个人供应商中继补全(边界)
+- 优先级:P1
+- 类型:API
+- 状态:⬜ 待实现(产品边界)— 本部署经个人供应商合成渠道中继返回 503 `unsupported_channel_endpoint`
+- 前置条件:已配置可用个人供应商上游(公网 HTTPS + 真实 key + 可用模型)、已建 API token。
+- 步骤:
+  1. 用 API Key 以个人供应商模型 POST `/chat/completions`。
+- 预期结果:应经 `personal_first` 路由到个人上游并返回补全。当前实现中合成个人渠道未持久化
+  `meta.ChannelModelConfigs`/已发布 selected 配置,`resolveChannelTextUpstream` 因无选定配置返回
+  503 `unsupported_channel_endpoint`——这是一处待产品侧确认的边界/缺口,已如实记录,未伪造绿色。
+
+---
+
+## 十二、渠道与供应商管理(管理员)
+
+> 渠道 = 运营方全局上游(管理员级),项操作在 `/api/v1/admin/channel/*`、列表在 `/api/v1/admin/channels/`。
+> 「渠道切换」= 按优先级分层 + 加权随机 + 自动 failover 从**启用且已发布**渠道中选路(非手动开关)。
+> 为避免污染共享路由,所有用例创建的渠道均用 `status:2`(手动停用——不参与选路、创建时不接触上游)
+> 并在 `finally` 硬删除。信封同上;管理员鉴权失败为 HTTP 200 `success:false`「无权进行此操作,权限不足」,
+> 未登录 HTTP 401。渠道 `key` 读取时脱敏(`key:""`、`key_set:true`、`key_preview:"sk-*ake"`)。
+> 需 `ROUTER_ADMIN_PRIVATE_KEY`(地址在 `bootstrap.root_wallet_address`),缺失则跳过。
+
+### RT-API-059 渠道 CRUD 全程;key 脱敏;删除幂等
+- 优先级:P0
+- 类型:API
+- 状态:✅ 已实现 — products/router/tests/admin-channels.spec.ts
+- 前置条件:持有管理员 JWT(`ROUTER_ADMIN_PRIVATE_KEY`)。
+- 步骤:
+  1. POST `/channel/`(status:2)建 → GET 读取 → 列表校验 → DELETE → 再 DELETE。
+- 预期结果:创建返回 `{data:{id}}`;读取 `key:""`、`key_set:true`、响应体不含明文 key;
+  compact 列表含之;删除成功且重复删除仍 `success:true`(按 id 硬删除,幂等)。
+
+### RT-API-060 渠道标识校验(空名/重名/畸形 JSON)
+- 优先级:P1
+- 类型:API
+- 状态:✅ 已实现 — products/router/tests/admin-channels.spec.ts
+- 前置条件:持有管理员 JWT。
+- 步骤:
+  1. 空名称创建;建一条后重名创建;畸形 JSON body 创建。
+- 预期结果:「渠道标识不能为空」;「渠道标识已存在」;畸形 JSON HTTP 200 `success:false` 且报文含解析错误。
+
+### RT-API-061 渠道启用/停用状态流转对选路的影响
+- 优先级:P2
+- 类型:API
+- 状态:⬜ 待实现(共享服务爆炸半径)— 需在启用态渠道上验证被纳入/剔除选路,会影响真实流量,暂缓
+- 前置条件:持有管理员 JWT;隔离的路由环境。
+- 步骤:
+  1. 建渠道并发布模型、置 `status:1`,验证进入选路;置 `status:2`,验证被剔除。
+- 预期结果:仅启用且已发布的渠道参与优先级+加权选路;停用即从候选剔除。
+
+### RT-API-062 渠道列表分页与 compact 投影
+- 优先级:P1
+- 类型:API
+- 状态:✅ 已实现 — products/router/tests/admin-channels.spec.ts
+- 前置条件:持有管理员 JWT。
+- 步骤:
+  1. GET `/channels/?page=1&page_size=2`;GET `?compact=1`。
+- 预期结果:分页回显 `page/page_size/total`,项含 `id/protocol/status/name/capabilities` 等;
+  compact 项恰为 `id/protocol/status/name` 四字段。
+
+### RT-API-063 渠道测试/刷新/子资源受控契约
+- 优先级:P1
+- 类型:API
+- 状态:✅ 已实现 — products/router/tests/admin-channels.spec.ts
+- 前置条件:持有管理员 JWT;一条无模型的停用渠道。
+- 步骤:
+  1. POST `/:id/tests`(无模型);POST `/:id/refresh`(非法 action);GET `/:id/models`;GET `/:id/tests`。
+- 预期结果:测试「未找到可用于测试的模型」;刷新「不支持的刷新动作」(未入队任务);
+  模型列表空页 `{items:[], total:0, selected_count:0}`;测试历史 `{items:[], last_tested_at:0}`。
+
+### RT-API-064 缺失渠道受控 not-found
+- 优先级:P2
+- 类型:API
+- 状态:✅ 已实现 — products/router/tests/admin-channels.spec.ts
+- 前置条件:持有管理员 JWT。
+- 步骤:
+  1. GET `/channel/<不存在ID>`。
+- 预期结果:HTTP 200 `success:false`、报文含「record not found」或「不存在」;不 5xx。
+
+### RT-API-065 供应商目录列表与缺失供应商
+- 优先级:P1
+- 类型:API
+- 状态:✅ 已实现 — products/router/tests/admin-channels.spec.ts
+- 前置条件:持有管理员 JWT。
+- 步骤:
+  1. GET `/providers/`;GET `/providers/<不存在>`。
+- 预期结果:列表项含 `id/name/models`;缺失供应商 `success:false`、报文「供应商不存在」。
+
+### RT-API-066 渠道/供应商管理端点鉴权边界
+- 优先级:P0
+- 类型:API
+- 状态:✅ 已实现 — products/router/tests/admin-channels.spec.ts
+- 前置条件:持有普通用户 JWT;另有匿名上下文。
+- 步骤:
+  1. 普通用户 GET `/channels/`、`/providers/`、POST `/channel/`;匿名 GET `/channels/`、`/providers/`。
+- 预期结果:普通用户 HTTP 200 `success:false`「…权限不足」;匿名 HTTP 401。
+
+---
+
+## 十三、钱包身份登录(真实 Node + Mailpit)
+
+### RT-API-067 全新钱包身份自动注册并落库 DID
+- 优先级:P0
+- 类型:API + 扩展
+- 状态:✅ 已实现 — products/router/tests/identity-login.spec.ts(helpers/identity.ts)
+- 前置条件:真实 MV3 钱包扩展上下文;YeYing Node 签发端 `:8100` 可达(`/api/v1/health`)、Mailpit 开发收件箱 `:8025`(SMTP `127.0.0.1:1025`)在线;Router 侧 `config.identity.trust_dir` 含签发方信任材料、部署 `AutoRegisterEnabled=true`;Node 不可达时据实跳过。
+- 步骤:
+  1. 创建并解锁**全新**钱包(全新 HD 种子 → 全新 EVM 地址),走完整真实入网:`IDENTITY_CREATE`(全新 DID)→ `account-links/challenge` → 用 EVM 账户签名 → `account-links/verify`(签发 WalletAccountCredential)→ `IDENTITY_VERIFICATION_REQUEST`(唯一 email+username)→ 从 Mailpit 读取 6 位验证码 → `IDENTITY_VERIFICATION_CONFIRM`(签发 Email/Username 凭证),断言持有三类凭证。
+  2. `POST /api/v1/public/auth/identity/login/session` 取得 nonce/audience/scopes。
+  3. 经注入的 EIP-1193 provider:先 `eth_requestAccounts` 连接(审批 `#approveConnect`),再 `wallet_identity_presentation`(凭 30s 连接窗静默授予 scopes,直接产出 Ed25519 VP,无二次审批)。
+  4. `POST /api/v1/public/auth/identity/login/verify` 提交 VP。
+- 预期结果:DID 匹配 `^did:yeying:wid_`;VP `holder===DID`、`proof.type==='YeyingIdentityPresentationProofV1'`;Router 校验通过并签发 token,`data.did===DID`、`data.walletAddress` 与账户地址一致。因 DID/地址/用户名对 Router 全为新值,只能命中 `findOrCreateWalletIdentityUser → autoCreateWalletIdentityUser` 自动建号分支:落库 `data.user.wallet_identity_did===DID`、`wallet_address` 一致、`username===` 身份用户名、`role===1`(普通用户)—— 证明「全新用户可仅凭钱包身份完成注册+登录」贯通真实全栈。(注:`has_password` 不作断言,repo `Create()` 见非空 Password 即强置 true,自动建号种了随机密码故亦为 true,无新旧区分意义。)
+
+### RT-API-068 未关联身份在关闭自动注册时被拒
+- 优先级:P0
+- 类型:API + 扩展
+- 状态:⬜ 待实现(降级跳过)— products/router/tests/identity-login.spec.ts:233(同 RT-067 走完整真实入网 + 出示 VP;但本部署 `AutoRegisterEnabled=true`,全新身份会被自动注册而非拒绝,拒绝分支不可达,故 verify 成功即据实降级跳过;`AutoRegisterEnabled=false` 时才断言拒绝)
+- 前置条件:同 RT-067;另需部署 `AutoRegisterEnabled=false` 才能真正命中拒绝分支。
+- 步骤:
+  1. 同 RT-067 入网并对 Router 会话产出全新身份的 VP。
+  2. `POST /auth/identity/login/verify` 提交。
+- 预期结果:自动注册关闭时,`findOrCreateWalletIdentityUser` 前两级(按 DID、按地址)均 miss → 返回受控报文「未找到钱包身份关联的账户,请先绑定或由管理员开启自动注册」且不签发 token;自动注册开启时该分支不可达,据实降级跳过。

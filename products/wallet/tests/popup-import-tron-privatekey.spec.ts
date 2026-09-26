@@ -22,7 +22,7 @@ import { test, expect } from '../fixtures';
 
 import { loadWalletContext, teardownWalletContext } from '../helpers/extension';
 import { stubPublicEndpoints } from '../helpers/network';
-import { byId, openPopup } from '../helpers/popup';
+import { byId, openPopup, selectImportNetwork } from '../helpers/popup';
 import { sendSw } from '../helpers/popup';
 
 // Hardhat/Anvil account #0 — same vector the unit suite in
@@ -44,17 +44,13 @@ test('import Tron private key lands on #walletPage with the expected Base58Check
     await byId(popup, 'welcomeImportWalletBtn').click();
     await byId(popup, 'importPage').waitFor({ state: 'visible' });
     await recorder.step(popup, '导入页', {
-      note: '四个 tab：助记词 / 私钥（EVM） + Tron 助记词 / Tron 私钥。',
+      note: '统一 UI：网络下拉（Ethereum/Tron/Solana/Bitcoin）+ 助记词/私钥 switch。',
     });
 
-    // Click the Tron 私钥 tab — data-type="privateKey" + data-chain="tron".
-    await byId(popup, 'tronPrivateKeyTab').click();
-    await expect(byId(popup, 'tronPrivateKeyTab')).toHaveClass(/active/);
-    await expect(popup.locator('.import-method-tab.active')).toHaveAttribute('data-chain', 'tron');
-    await expect(popup.locator('.import-method-tab.active')).toHaveAttribute('data-type', 'privateKey');
+    // 选网络 = Tron，方法 = 私钥。reference 选择器会自动展开。
+    await selectImportNetwork(popup, 'tron', 'privateKey');
+    await expect(byId(popup, 'importReferenceGroup')).toBeVisible();
     await expect(byId(popup, 'privateKeyImportSection')).toBeVisible();
-    // The Tron network selector is only shown for Tron tabs.
-    await expect(byId(popup, 'tronImportNetworkGroup')).toBeVisible();
 
     await byId(popup, 'importPrivateKey').fill(TEST_TRON_PRIVATE_KEY);
     await byId(popup, 'importAccountName').fill('E2E Tron PK');

@@ -45,14 +45,13 @@ test('import private key lands on #walletPage with the expected account address'
     await byId(popup, 'welcomePage').waitFor({ state: 'visible' });
     await byId(popup, 'welcomeImportWalletBtn').click();
     await byId(popup, 'importPage').waitFor({ state: 'visible' });
-    await recorder.step(popup, '导入页（默认助记词 tab）', {
-      note: '切换到「私钥」tab 后可粘贴单个账户私钥导入。',
+    await recorder.step(popup, '导入页（默认助记词 + Ethereum 网络）', {
+      note: '切到「私钥」开关即可；网络选择器默认 Ethereum，无需改动。',
     });
 
-    // Switch to the EVM private-key tab (Tron has its own tab with the
-    // same data-type). The section is hidden until then.
-    await popup.locator('.import-tab[data-type=privateKey][data-chain="evm"]').click();
-    await expect(popup.locator('.import-tab.active')).toHaveAttribute('data-type', 'privateKey');
+    // 新 UI：默认网络 = EVM；点私钥开关（代替旧的 .import-tab[data-type=privateKey][data-chain=evm]）
+    await byId(popup, 'importMethodPrivateKeyOption').click();
+    await expect(popup.locator('.import-method-option.active')).toHaveAttribute('data-method', 'privateKey');
     await expect(popup.locator('#privateKeyImportSection')).toBeVisible();
 
     await byId(popup, 'importPrivateKey').fill(TEST_PRIVATE_KEY);

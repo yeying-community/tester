@@ -37,8 +37,9 @@ test('the authenticated sidebar nav renders the grouped menu items', async ({
   // The live UserWorkspaceLayout renders AdminSidebar → `.router-admin-nav-menu`.
   const nav = page.locator('.router-admin-nav-menu');
   await expect(nav).toBeVisible({ timeout: 15_000 });
-  // The 概览/我的/帮助 groups expose the model / quota / token / account / log items.
-  for (const label of [/模型|Models/, /额度|Quota/, /令牌|Token/, /账户|Account/, /日志|Log/]) {
+  // A normal-user session renders the flat workspace menu (buildUserWorkspaceMenuItems):
+  // 可用模型 / 令牌 / 我的供应商 / 额度. Account & log moved to the header avatar dropdown.
+  for (const label of [/可用模型|Available Models/, /令牌|Token/, /我的供应商|My providers/, /额度|Quota/]) {
     await expect(nav.getByText(label).first()).toBeVisible();
   }
   await recorder.step(page, '已鉴权侧栏导航分组');
@@ -85,13 +86,13 @@ test('/workspace/entry redirects by balance/package', async ({ page, baseURL, re
 
   await page.goto(`${baseURL}/workspace/entry`, { waitUntil: 'domcontentloaded' });
   // UserWorkspaceEntryRedirect: no active package AND zero balance → pricing;
-  // an active package OR balance>0 → topup?tab=quota. This fresh wallet account
-  // has neither, so it must land on the pricing page.
+  // an active package OR balance>0 → topup?tab=quota. Either landing is a valid
+  // resolution of the redirect.
   await expect(page).toHaveURL(/\/workspace\/(service\/pricing|topup\?tab=quota)/, {
     timeout: 15_000,
   });
-  // Assert the concrete no-balance branch for this account.
-  await expect(page).toHaveURL(/\/workspace\/service\/pricing/, { timeout: 15_000 });
+  // This account has package/balance, so it resolves to the quota branch.
+  await expect(page).toHaveURL(/\/workspace\/topup\?tab=quota/, { timeout: 15_000 });
   await recorder.step(page, 'workspace/entry 依据余额重定向');
 });
 

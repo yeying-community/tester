@@ -43,7 +43,7 @@ import { test, expect } from '../fixtures';
 
 import { loadWalletContext, teardownWalletContext } from '../helpers/extension';
 import { stubPublicEndpoints } from '../helpers/network';
-import { byId, openPopup, sendSw } from '../helpers/popup';
+import { byId, openPopup, sendSw, selectImportNetwork } from '../helpers/popup';
 import { routeTronNode, TRON_MAINNET_RPC_URL, type TronRpcCapture } from '../helpers/tron-rpc';
 
 const TEST_TRON_PRIVATE_KEY =
@@ -68,7 +68,8 @@ test('broadcast Tron native TRX transfer reaches /wallet/broadcasttransaction wi
     await byId(popup, 'welcomePage').waitFor({ state: 'visible' });
     await byId(popup, 'welcomeImportWalletBtn').click();
     await byId(popup, 'importPage').waitFor({ state: 'visible' });
-    await byId(popup, 'tronPrivateKeyTab').click();
+    // 选网络 = Tron，方法 = 私钥。
+    await selectImportNetwork(popup, 'tron', 'privateKey');
     await byId(popup, 'importPrivateKey').fill(TEST_TRON_PRIVATE_KEY);
     await byId(popup, 'importAccountName').fill('E2E Tron Sender');
     await byId(popup, 'importWalletPassword').fill(TEST_PASSWORD);

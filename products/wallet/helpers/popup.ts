@@ -144,27 +144,30 @@ export const SELECTORS = {
   tronCreateNetworkMenu: '#tronCreateNetworkMenu',
   tronCreateNetworkLabel: '#tronCreateNetworkLabel',
   tronCreateNetworkSelect: '#tronCreateNetworkSelect',
-  tronMnemonicTab: '#tronMnemonicTab',
-  tronPrivateKeyTab: '#tronPrivateKeyTab',
-  tronImportNetworkGroup: '#tronImportNetworkGroup',
-  tronImportNetworkSelect: '#tronImportNetworkSelect',
   transferFeeEstimate: '#transferFeeEstimate',
 
   // Solana-specific UI surface (Tier 3; ed25519 third-chain support).
-  solanaPrivateKeyTab: '#solanaPrivateKeyTab',
-  solanaImportNetworkGroup: '#solanaImportNetworkGroup',
-  solanaImportNetworkSelect: '#solanaImportNetworkSelect',
   solanaCreateNetworkTrigger: '#solanaCreateNetworkTrigger',
   solanaCreateNetworkMenu: '#solanaCreateNetworkMenu',
   solanaCreateNetworkSelect: '#solanaCreateNetworkSelect',
 
   // Bitcoin-specific UI surface (Tier 3; bip122 UTXO chain, secp256k1 reuse).
-  bitcoinPrivateKeyTab: '#bitcoinPrivateKeyTab',
-  bitcoinImportNetworkGroup: '#bitcoinImportNetworkGroup',
-  bitcoinImportNetworkSelect: '#bitcoinImportNetworkSelect',
   bitcoinCreateNetworkTrigger: '#bitcoinCreateNetworkTrigger',
   bitcoinCreateNetworkMenu: '#bitcoinCreateNetworkMenu',
   bitcoinCreateNetworkSelect: '#bitcoinCreateNetworkSelect',
+
+  // 通用导入页控件（Tier 3 重构后：网络 + 助记词/私钥 switch，代替每链 tab）
+  importNetworkTrigger: '#importNetworkTrigger',
+  importNetworkMenu: '#importNetworkMenu',
+  importNetworkSelect: '#importNetworkSelect',
+  importNetworkLabel: '#importNetworkLabel',
+  importMethodMnemonicOption: '#importMethodMnemonicOption',
+  importMethodPrivateKeyOption: '#importMethodPrivateKeyOption',
+  importReferenceGroup: '#importReferenceGroup',
+  importReferenceTrigger: '#importReferenceTrigger',
+  importReferenceMenu: '#importReferenceMenu',
+  importReferenceSelect: '#importReferenceSelect',
+  importReferenceLabel: '#importReferenceLabel',
 } as const;
 
 /** Open the main popup (380×600) and return the page. */
@@ -180,6 +183,29 @@ export async function openPopup(context: BrowserContext, extensionId?: string): 
 export function byId(page: Page, key: keyof typeof SELECTORS) {
   const sel = SELECTORS[key];
   return page.locator(sel);
+}
+
+/**
+ * 在导入页选择目标网络（Ethereum / Tron / Solana / Bitcoin），并可选地切到「私钥」方法。
+ * 取代旧 6 tab（tronPrivateKeyTab / solanaPrivateKeyTab / bitcoinPrivateKeyTab），
+ * 新 UI 是「1 网络下拉 + 1 助记词/私钥 switch」。
+ *
+ * @param page popup page
+ * @param network 网络值：'evm' | 'tron' | 'solana' | 'bitcoin'
+ * @param method  'mnemonic' | 'privateKey'（默认 'privateKey'，与旧 import-privatekey 系列 spec 一致）
+ */
+export async function selectImportNetwork(
+  page: Page,
+  network: 'evm' | 'tron' | 'solana' | 'bitcoin',
+  method: 'mnemonic' | 'privateKey' = 'privateKey'
+): Promise<void> {
+  await byId(page, 'importNetworkTrigger').click();
+  await page.locator(`#importNetworkMenu .network-option[data-network-value="${network}"]`).click();
+  if (method === 'privateKey') {
+    await byId(page, 'importMethodPrivateKeyOption').click();
+  } else {
+    await byId(page, 'importMethodMnemonicOption').click();
+  }
 }
 
 /** Default password + wallet name used by setup helpers. */

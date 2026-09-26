@@ -18,7 +18,7 @@ import { test, expect } from '../fixtures';
 
 import { loadWalletContext, teardownWalletContext } from '../helpers/extension';
 import { stubPublicEndpoints } from '../helpers/network';
-import { byId, openPopup, sendSw } from '../helpers/popup';
+import { byId, openPopup, sendSw, selectImportNetwork } from '../helpers/popup';
 import { routeSolanaNode, SOLANA_MAINNET_RPC_URL, type SolanaRpcCapture } from '../helpers/solana-rpc';
 
 const TEST_SOLANA_PRIVATE_KEY =
@@ -44,7 +44,7 @@ test('transfer SPL USDC on Solana routes through the SPL token path, not native 
     await byId(popup, 'welcomePage').waitFor({ state: 'visible' });
     await byId(popup, 'welcomeImportWalletBtn').click();
     await byId(popup, 'importPage').waitFor({ state: 'visible' });
-    await byId(popup, 'solanaPrivateKeyTab').click();
+    await selectImportNetwork(popup, 'solana', 'privateKey');
     await byId(popup, 'importPrivateKey').fill(TEST_SOLANA_PRIVATE_KEY);
     await byId(popup, 'importAccountName').fill('E2E SPL Sender');
     await byId(popup, 'importWalletPassword').fill(TEST_PASSWORD);

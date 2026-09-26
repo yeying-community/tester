@@ -21,7 +21,7 @@ import { test, expect } from '../fixtures';
 
 import { loadWalletContext, teardownWalletContext } from '../helpers/extension';
 import { stubPublicEndpoints } from '../helpers/network';
-import { byId, openPopup, sendSw } from '../helpers/popup';
+import { byId, openPopup, sendSw, selectImportNetwork } from '../helpers/popup';
 import { routeBitcoinNode, BITCOIN_MAINNET_RPC_URL, type BitcoinRpcCapture } from '../helpers/bitcoin-rpc';
 
 const TEST_BITCOIN_PRIVATE_KEY =
@@ -43,7 +43,7 @@ test('broadcast Bitcoin native BTC transfer reaches POST /tx with a segwit raw t
     await byId(popup, 'welcomePage').waitFor({ state: 'visible' });
     await byId(popup, 'welcomeImportWalletBtn').click();
     await byId(popup, 'importPage').waitFor({ state: 'visible' });
-    await byId(popup, 'bitcoinPrivateKeyTab').click();
+    await selectImportNetwork(popup, 'bitcoin', 'privateKey');
     await byId(popup, 'importPrivateKey').fill(TEST_BITCOIN_PRIVATE_KEY);
     await byId(popup, 'importAccountName').fill('E2E Bitcoin Sender');
     await byId(popup, 'importWalletPassword').fill(TEST_PASSWORD);

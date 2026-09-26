@@ -36,8 +36,8 @@ test('WL-UI-009: an invalid mnemonic is rejected and no wallet is created', asyn
     await byId(popup, 'welcomePage').waitFor({ state: 'visible' });
     await byId(popup, 'welcomeImportWalletBtn').click();
     await byId(popup, 'importPage').waitFor({ state: 'visible' });
-    // Mnemonic tab is the default; assert it to be explicit.
-    await expect(popup.locator('.import-tab.active')).toHaveAttribute('data-type', 'mnemonic');
+    // Mnemonic switch is the default in the new UI; assert it explicitly.
+    await expect(popup.locator('.import-method-option.active')).toHaveAttribute('data-method', 'mnemonic');
 
     await byId(popup, 'importMnemonic').fill(BAD_MNEMONIC);
     await byId(popup, 'importAccountName').fill('Should Not Exist');
@@ -70,10 +70,9 @@ test('WL-UI-010: an invalid private key is rejected and no wallet is created', a
     await byId(popup, 'welcomeImportWalletBtn').click();
     await byId(popup, 'importPage').waitFor({ state: 'visible' });
 
-    // Switch to the EVM private-key tab (Tron has its own tab with the
-    // same data-type); its section is hidden until then.
-    await popup.locator('.import-tab[data-type=privateKey][data-chain="evm"]').click();
-    await expect(popup.locator('.import-tab.active')).toHaveAttribute('data-type', 'privateKey');
+    // 新 UI：默认网络 = EVM；点私钥开关（代替旧的 .import-tab[data-type=privateKey][data-chain="evm"]）
+    await byId(popup, 'importMethodPrivateKeyOption').click();
+    await expect(popup.locator('.import-method-option.active')).toHaveAttribute('data-method', 'privateKey');
     await expect(popup.locator('#privateKeyImportSection')).toBeVisible();
 
     await byId(popup, 'importPrivateKey').fill(BAD_PRIVATE_KEY);
