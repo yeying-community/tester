@@ -3,7 +3,7 @@
 > 测试人员视角整理的**应有** E2E 用例清单,作为实现依据。
 > 状态说明:✅ 已实现(链接到 spec) / ⬜ 待实现。
 > 端点:admin UI + API 3011(内嵌 Go 二进制)· 自定义 SIWE
-> 最后更新:2026-09-24
+> 最后更新:2026-09-26
 
 ## 覆盖总览
 
@@ -21,7 +21,8 @@
 | 十、OpenAI 兼容模型与中继 | 6 | 5 | 1 |
 | 十一、个人供应商路由(BYOK) | 10 | 9 | 1 |
 | 十二、渠道与供应商管理(管理员) | 8 | 7 | 1 |
-| **合计** | **97** | **81** | **16** |
+| 十三、钱包身份登录(真实 Node + Mailpit) | 2 | 1 | 1 |
+| **合计** | **99** | **82** | **17** |
 
 > 说明:Router 单一 Go 二进制在 `:3011` 上同时提供内嵌 React 管理后台与 API。
 > 钱包是唯一登录方式(`password_login_enabled=false`、`password_register_enabled=false`)。
@@ -1000,3 +1001,29 @@
 - 步骤:
   1. 普通用户 GET `/channels/`、`/providers/`、POST `/channel/`;匿名 GET `/channels/`、`/providers/`。
 - 预期结果:普通用户 HTTP 200 `success:false`「…权限不足」;匿名 HTTP 401。
+
+---
+
+## 十三、钱包身份登录(真实 Node + Mailpit)
+
+### RT-API-067 全新钱包身份自动注册并落库 DID
+- 优先级:P0
+- 类型:API + 扩展
+- 状态:✅ 已实现 — products/router/tests/identity-login.spec.ts(helpers/identity.ts)
+- 前置条件:真实 MV3 钱包扩展上下文;YeYing Node 签发端 `:8100` 可达(`/api/v1/health`)、Mailpit 开发收件箱 `:8025`(SMTP `127.0.0.1:1025`)在线;Router 侧 `config.identity.trust_dir` 含签发方信任材料、部署 `AutoRegisterEnabled=true`;Node 不可达时据实跳过。
+- 步骤:
+  1. 创建并解锁**全新**钱包(全新 HD 种子 → 全新 EVM 地址),走完整真实入网:`IDENTITY_CREATE`(全新 DID)→ `account-links/challenge` → 用 EVM 账户签名 → `account-links/verify`(签发 WalletAccountCredential)→ `IDENTITY_VERIFICATION_REQUEST`(唯一 email+username)→ 从 Mailpit 读取 6 位验证码 → `IDENTITY_VERIFICATION_CONFIRM`(签发 Email/Username 凭证),断言持有三类凭证。
+  2. `POST /api/v1/public/auth/identity/login/session` 取得 nonce/audience/scopes。
+  3. 经注入的 EIP-1193 provider:先 `eth_requestAccounts` 连接(审批 `#approveConnect`),再 `wallet_identity_presentation`(凭 30s 连接窗静默授予 scopes,直接产出 Ed25519 VP,无二次审批)。
+  4. `POST /api/v1/public/auth/identity/login/verify` 提交 VP。
+- 预期结果:DID 匹配 `^did:yeying:wid_`;VP `holder===DID`、`proof.type==='YeyingIdentityPresentationProofV1'`;Router 校验通过并签发 token,`data.did===DID`、`data.walletAddress` 与账户地址一致。因 DID/地址/用户名对 Router 全为新值,只能命中 `findOrCreateWalletIdentityUser → autoCreateWalletIdentityUser` 自动建号分支:落库 `data.user.wallet_identity_did===DID`、`wallet_address` 一致、`username===` 身份用户名、`role===1`(普通用户)—— 证明「全新用户可仅凭钱包身份完成注册+登录」贯通真实全栈。(注:`has_password` 不作断言,repo `Create()` 见非空 Password 即强置 true,自动建号种了随机密码故亦为 true,无新旧区分意义。)
+
+### RT-API-068 未关联身份在关闭自动注册时被拒
+- 优先级:P0
+- 类型:API + 扩展
+- 状态:⬜ 待实现(降级跳过)— products/router/tests/identity-login.spec.ts:233(同 RT-067 走完整真实入网 + 出示 VP;但本部署 `AutoRegisterEnabled=true`,全新身份会被自动注册而非拒绝,拒绝分支不可达,故 verify 成功即据实降级跳过;`AutoRegisterEnabled=false` 时才断言拒绝)
+- 前置条件:同 RT-067;另需部署 `AutoRegisterEnabled=false` 才能真正命中拒绝分支。
+- 步骤:
+  1. 同 RT-067 入网并对 Router 会话产出全新身份的 VP。
+  2. `POST /auth/identity/login/verify` 提交。
+- 预期结果:自动注册关闭时,`findOrCreateWalletIdentityUser` 前两级(按 DID、按地址)均 miss → 返回受控报文「未找到钱包身份关联的账户,请先绑定或由管理员开启自动注册」且不签发 token;自动注册开启时该分支不可达,据实降级跳过。
