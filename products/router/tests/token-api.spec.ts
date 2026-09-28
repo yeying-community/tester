@@ -69,22 +69,25 @@ test('POST /token/ creates a token (or reaches the models gate)', async () => {
   }
 });
 
-// RT-API-026 (P1)
-test('POST /token/ without a name is rejected', async () => {
+// RT-API-026 (P1) — parameter validation on token create.
+// The backend ACCEPTS an empty name: validateToken (handler.go) only rejects a name
+// longer than 30 chars, and it runs BEFORE the models-entitlement gate. So an
+// over-long name is the real, deterministic validation boundary — it is refused
+// regardless of whether the account has available models, writes nothing, and leaks
+// no key.
+test('POST /token/ with an over-long name is rejected by parameter validation', async () => {
   skipIfNoService();
   skipIfNoKey();
   const baseURL = baseURLFor('router')!;
   const { token } = await acquireRouterToken(baseURL);
   const ctx = await apiContext(baseURL, { Authorization: `Bearer ${token}` });
   try {
-    const res = await ctx.post('/api/v1/public/token/', { data: {} });
+    const res = await ctx.post('/api/v1/public/token/', { data: { name: 'x'.repeat(31) } });
     expect(res.status()).toBe(200);
     const body = (await res.json()) as CreateResp;
-    // Rejected either by param validation or by the models gate (checked first
-    // on an unfunded account). Either way nothing is written and no key leaks.
     expect(body.success).toBe(false);
     expect(body.data?.key).toBeUndefined();
-    expect(body.message ?? '').toMatch(/参数|name|名称|暂无可用模型|购买套餐|充值/i);
+    expect(body.message ?? '').toMatch(/参数错误|令牌名称过长/);
   } finally {
     await ctx.dispose();
   }
@@ -252,7 +255,7 @@ test('token/status returns quota status for an API Key (RT-API-031)', async () =
     };
     test.skip(
       !Array.isArray(models.data) || models.data.length === 0,
-      'account has no available models, so no sk- API key can be minted; ' +
+      'account has no available models, so no API key can be minted; ' +
         'the token/status API-Key branch (RT-API-031) needs purchased models (payment boundary)',
     );
 
@@ -263,7 +266,12 @@ test('token/status returns quota status for an API Key (RT-API-031)', async () =
     expect(create.success).toBe(true);
     const key = create.data?.key ?? '';
     const id = String(create.data?.id ?? '');
-    expect(key).toMatch(/^sk-/);
+    // The API returns the raw key (random.GenerateKey(): 48 chars, NO prefix). The
+    // `sk-` prefix only appears in the UI's copy/cURL rendering (renderFullToken),
+    // not in the API payload — so assert the raw shape here.
+    expect(key).not.toBe('');
+    expect(key.length).toBeGreaterThanOrEqual(40);
+    expect(key.startsWith('sk-')).toBe(false);
     const keyCtx = await apiContext(baseURL, { Authorization: `Bearer ${key}` });
     try {
       const res = await keyCtx.get('/api/v1/public/token/status');

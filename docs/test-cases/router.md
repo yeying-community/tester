@@ -3,7 +3,7 @@
 > 测试人员视角整理的**应有** E2E 用例清单,作为实现依据。
 > 状态说明:✅ 已实现(链接到 spec) / ⬜ 待实现。
 > 端点:admin UI + API 3011(内嵌 Go 二进制)· 自定义 SIWE
-> 最后更新:2026-09-26
+> 最后更新:2026-09-27
 
 ## 覆盖总览
 
@@ -13,8 +13,8 @@
 | 二、钱包自定义 SIWE 鉴权 | 11 | 9 | 2 |
 | 三、鉴权与权限边界(混合信封) | 8 | 8 | 0 |
 | 四、管理后台 UI 与登录导航 | 12 | 12 | 0 |
-| 五、工作台只读页面 | 7 | 6 | 1 |
-| 六、令牌(Token)生命周期 | 10 | 7 | 3 |
+| 五、工作台只读页面 | 7 | 7 | 0 |
+| 六、令牌(Token)生命周期 | 10 | 10 | 0 |
 | 七、充值与订单生命周期 | 8 | 3 | 5 |
 | 八、余额与兑换码 | 5 | 3 | 2 |
 | 九、个人中心与账户设置 | 5 | 5 | 0 |
@@ -22,7 +22,10 @@
 | 十一、个人供应商路由(BYOK) | 10 | 9 | 1 |
 | 十二、渠道与供应商管理(管理员) | 8 | 7 | 1 |
 | 十三、钱包身份登录(真实 Node + Mailpit) | 2 | 1 | 1 |
-| **合计** | **99** | **82** | **17** |
+| 十四、管理员站点级令牌管理 | 5 | 5 | 0 |
+| 十五、渠道账务采购快照(管理员) | 2 | 2 | 0 |
+| 十六、渠道告警中心(管理员) | 3 | 2 | 1 |
+| **合计** | **109** | **95** | **14** |
 
 > 说明:Router 单一 Go 二进制在 `:3011` 上同时提供内嵌 React 管理后台与 API。
 > 钱包是唯一登录方式(`password_login_enabled=false`、`password_register_enabled=false`)。
@@ -465,7 +468,7 @@
 ### RT-UI-022 令牌值复制与启用/禁用切换交互
 - 优先级:P2
 - 类型:UI
-- 状态:⬜ 待实现(降级跳过)— products/router/tests/token-ui.spec.ts:42(条件跳过:当前账户无令牌;创建令牌需可用模型=外部支付边界。存在令牌时执行复制→toast + 状态开关 PUT 切换并复位)
+- 状态:✅ 已实现 — products/router/tests/token-ui.spec.ts:67(账号已获赠额度,存在令牌:执行复制→toast + 状态开关 PUT 切换并复位;若某次账号偶发无令牌则条件跳过)
 - 前置条件:已注入会话且账户至少有 1 个令牌。
 - 步骤:
   1. 在令牌行点击复制图标;点击状态开关切换启用/禁用。
@@ -484,7 +487,7 @@
   1. 注入会话,打开 `/workspace/token`,点“新增令牌”。
   2. 填名称 `e2e-tok-<ts>`,点“确认”触发真实 `POST /token/`。
   3. 有可用模型:断言“令牌已创建”卡片、列表出现该行,`finally` 用 Bearer 调 `DELETE /token/:id/` 清理;无可用模型:断言到达后端门槛消息。
-- 预期结果:请求体 `name` 与输入一致;有额度时完整创建→列表可见→删除闭环;无额度时验证创建流已接到模型门槛(未写入)。
+- 预期结果:请求体 `name` 与输入一致;账号已获赠额度,默认走「创建→列表可见→删除」完整闭环;若某次账号偶发无可用模型则命中门槛分支并断言门槛消息。
 
 ### RT-API-024 POST /token/ 创建令牌返回 key
 - 优先级:P0
@@ -493,7 +496,7 @@
 - 前置条件:账户存在可用模型(有额度)。
 - 步骤:
   1. 携带用户 JWT POST `/api/v1/public/token/`,body `{name}`。
-- 预期结果:有可用模型时 `success=true`、`data` 含新令牌 id 与 key,随后 `finally` 删除;无可用模型时命中后端「暂无可用模型」门槛(未写入)。当前测试账号无可用模型,实测走门槛分支(边界断言)。
+- 预期结果:有可用模型时 `success=true`、`data` 含新令牌 id 与 key,随后 `finally` 删除;无可用模型时命中后端「暂无可用模型」门槛(未写入)。账号已获赠额度,默认走真实创建分支。
 
 ### RT-API-025 POST /token/ 无可用模型时被门槛拦截
 - 优先级:P1
@@ -502,16 +505,16 @@
 - 前置条件:账户无可用模型(未购买/未充值)。
 - 步骤:
   1. 携带用户 JWT POST `/token/`,body `{name}`。
-- 预期结果:`success=false`;消息匹配“暂无可用模型/购买套餐”等门槛提示;未创建令牌。
+- 预期结果:`success=false`;消息匹配“暂无可用模型/购买套餐”等门槛提示;未创建令牌。备注:账号已获赠额度、可用模型非空时该门槛不再适用,本例按条件 `test.skip` 干净跳过(仅在无额度账号上真实执行)。
 
 ### RT-API-026 POST /token/ 参数校验
 - 优先级:P1
 - 类型:API
-- 状态:✅ 已实现 — products/router/tests/token-api.spec.ts
+- 状态:✅ 已实现 — products/router/tests/token-api.spec.ts:78
 - 前置条件:持有用户 JWT。
 - 步骤:
-  1. POST `/token/` body 缺 `name` 或含非法配额值。
-- 预期结果:`success=false`;不写入、不下发 key。备注:实测后端在参数校验之前先检查「可用模型」门槛,故无模型账号缺 `name` 会先命中门槛消息;测试对两类拒绝消息均兼容。
+  1. POST `/token/` body `name` 超过 30 字符(如 31 个字符)。
+- 预期结果:`success=false`;`message` 含「参数错误」/「令牌名称过长」;不写入、不下发 key。备注:后端 `validateToken` 仅拒名称 >30(在可用模型门槛之前触发,与账号额度无关),**空 `name` 合法被接受**,故以「名称过长」作为确定性参数校验边界。
 
 ### RT-API-027 GET /token/ 列表含新建令牌且 /token/:id 返回详情
 - 优先级:P1
@@ -521,12 +524,12 @@
 - 步骤:
   1. GET `/token/` 列表。
   2. GET `/token/:id` 详情。
-- 预期结果:列表返回 `success=true` 且 `data` 为数组、含分页 `meta`;若存在令牌则 `/token/:id` 返回该令牌详情(id 一致)。当前账号无令牌,详情分支按条件 `test.skip` 干净跳过。
+- 预期结果:列表返回 `success=true` 且 `data` 为数组、含分页 `meta`;若存在令牌则 `/token/:id` 返回该令牌详情(id 一致)。账号已获赠额度、通常有令牌,详情分支真实执行;偶发无令牌时该分支按条件 `test.skip` 干净跳过。
 
 ### RT-API-028 PUT /token/ 更新令牌
 - 优先级:P1
 - 类型:API
-- 状态:⬜ 待实现(降级跳过)— products/router/tests/token-api.spec.ts(条件跳过:当前账户无令牌可更新;创建令牌需可用模型=外部支付边界。存在令牌时自动执行 PUT 更新回环)
+- 状态:✅ 已实现 — products/router/tests/token-api.spec.ts:154(账号已获赠额度,存在令牌:执行 PUT 更新回环并 GET 校验;若某次账号偶发无令牌则条件跳过)
 - 前置条件:已创建 1 个令牌。
 - 步骤:
   1. PUT `/token/`,body 含 id 与修改后的名称/配额/状态。
@@ -554,19 +557,19 @@
 ### RT-API-031 token/status 以 API Key 返回额度状态
 - 优先级:P2
 - 类型:API
-- 状态:⬜ 待实现(降级跳过)— products/router/tests/token-api.spec.ts:243(条件跳过:探测 `GET /user/models/available` 为空即无法创建令牌=外部支付边界;有可用模型时铸造令牌并以 API Key 读 token/status)
+- 状态:✅ 已实现 — products/router/tests/token-api.spec.ts:246(账号已获赠额度,有可用模型:铸造令牌并以 API Key 读 token/status;若某次探测无可用模型则条件跳过)
 - 前置条件:已创建并取得令牌 key。
 - 步骤:
-  1. 用 `Authorization: Bearer sk-<key>` GET `/token/status`。
+  1. 用 `Authorization: Bearer <key>` GET `/token/status`(API 返回的原始 key 为 48 位、**无 `sk-` 前缀**;`sk-` 仅前端 `renderFullToken` 展示/cURL 时附加)。
 - 预期结果:返回该令牌剩余额度/请求次数等状态字段。
 
 ### RT-UI-023 令牌编辑页修改名称/配额/模型限制并保存
 - 优先级:P2
 - 类型:UI
-- 状态:⬜ 待实现(降级跳过)— products/router/tests/token-ui.spec.ts:83(条件跳过:当前账户无令牌可编辑;创建令牌需可用模型=外部支付边界。存在令牌时打开 `/workspace/token/:id` 改名保存断言 PUT `success=true` 并复原)
-- 前置条件:已注入会话且存在 1 个令牌。
+- 状态:✅ 已实现 — products/router/tests/token-ui.spec.ts:108(账号已获赠额度,本测试自带 `mintOwnToken` 铸造专属令牌以避免与其它 token 规格并发竞争;点击「编辑」进入编辑态、改名保存、断言 PUT 200 success 并删除该令牌)
+- 前置条件:已注入会话;账号存在可用模型(本测试自己铸造令牌)。
 - 步骤:
-  1. 打开 `/workspace/token/:id`(EditToken)。
+  1. 用用户 JWT 铸造专属测试令牌,跳到 `/workspace/token/:id`(EditToken)。
   2. 修改名称、配额上限、模型限制,保存。
 - 预期结果:保存成功;返回列表后该行显示更新后的名称;后端 PUT 请求体携带修改字段。
 
@@ -1027,3 +1030,144 @@
   1. 同 RT-067 入网并对 Router 会话产出全新身份的 VP。
   2. `POST /auth/identity/login/verify` 提交。
 - 预期结果:自动注册关闭时,`findOrCreateWalletIdentityUser` 前两级(按 DID、按地址)均 miss → 返回受控报文「未找到钱包身份关联的账户,请先绑定或由管理员开启自动注册」且不签发 token;自动注册开启时该分支不可达,据实降级跳过。
+
+---
+
+## 十四、管理员站点级令牌管理
+
+> 端点:`/api/v1/admin/token/*`(`AdminAuth`,站点级,可读写**任意**用户的令牌)——区别于用户级
+> `/api/v1/public/token/*`(仅本人可见)。信封 `{success, message, data}`(列表另带 `meta:{total,page,page_size}`,
+> 部分令牌错误另带 `code`),HTTP 恒 200,断言以 `success` 为准。id 为 char36 空格右填充,需 `.trim()`。
+> 需 `ROUTER_ADMIN_PRIVATE_KEY` 与 `ROUTER_WALLET_PRIVATE_KEY`。被测令牌经用户端创建(管理端无 create),
+> 该创建受**归属账号权益**约束(可用模型 = 套餐/充值权益 ∪ 个人供应商 BYOK 连接的模型)。两个测试账号均已赠送额度,
+> 令牌 CRUD 三条已真跑绿;RT-API-078 另行独立验证 BYOK 自助解锁令牌创建这条正交路径。
+
+### RT-API-069 管理员列出任意用户令牌并读取(含归属身份)
+- 优先级:P0
+- 类型:API
+- 状态:✅ 已实现 — products/router/tests/admin-token.spec.ts:148(归属账号已具可用模型,真跑;若某部署账号无可用模型则自动回退 BYOK 连接补一枚模型后重试,仍不可用时据实跳过)
+- 前置条件:归属账号具备可用模型(可创建令牌);`ROUTER_ADMIN_PRIVATE_KEY` 在部署 `bootstrap.root_wallet_address`。
+- 步骤:
+  1. 以普通用户经 `POST /api/v1/public/token/` 创建一枚令牌。
+  2. 管理员 `GET /api/v1/admin/token/?keyword=<name>&page=1&page_size=100`。
+  3. 管理员 `GET /api/v1/admin/token/:id`。
+  4. 管理员 `GET /api/v1/admin/token/search?keyword=<name>`。
+- 预期结果:列表 `success=true`,命中该令牌且条目为 `presenter.AdminToken`——含归属 `username` 字段与 `user_id`、`status`;列表信封含 `meta:{total,page:1,page_size}`。按 id 读取返回 `presenter.Token`(不含 `username`),`id`/`name` 匹配。search 命中该 id。
+
+### RT-API-070 管理员 status_only 局部更新与整字段更新
+- 优先级:P0
+- 类型:API
+- 状态:✅ 已实现 — products/router/tests/admin-token.spec.ts:196(真跑;整字段更新分支只写 name/额度/模型等**不含 status**,status 仅经 `?status_only` 变更——用例据此三步:status_only 停用→整字段仅改名→status_only 再启用)
+- 前置条件:同 RT-069。
+- 步骤:
+  1. `PUT /api/v1/admin/token/?status_only=1` body `{id, status:2}`(停用)。
+  2. `GET :id` 校验(status→2、name 不变)。
+  3. `PUT /api/v1/admin/token/` body 整字段(`{id, name:改名, ...}`)——仅改名。
+  4. `GET :id` 校验(name 为新值、status 仍为 2)。
+  5. `PUT /api/v1/admin/token/?status_only=1` body `{id, status:1}`(重新启用)。
+  6. `GET :id` 校验(status→1、name 保持步骤 3 的新值)。
+- 预期结果:status_only 仅改 `status` 而不动其他字段;整字段更新分支只写 name/额度/过期/模型等、**不写 status**(status 恒经 `?status_only` 变更);启用不被过期/用尽拦截(不限额/不限次)。
+
+### RT-API-071 管理员删除令牌后再读/再删受控 not-found
+- 优先级:P0
+- 类型:API
+- 状态:✅ 已实现 — products/router/tests/admin-token.spec.ts:253(真跑)
+- 前置条件:同 RT-069。
+- 步骤:
+  1. `DELETE /api/v1/admin/token/:id`。
+  2. `GET /api/v1/admin/token/:id`。
+  3. 再次 `DELETE /api/v1/admin/token/:id`。
+- 预期结果:删除 `success=true`;随后读取与再次删除均 `success=false`、`message==='令牌不存在或无权访问'`、`code==='token_not_found'`(非幂等成功,与渠道删除不同)。
+
+### RT-API-072 管理员令牌端点鉴权边界
+- 优先级:P0
+- 类型:API
+- 状态:✅ 已实现 — products/router/tests/admin-token.spec.ts:288
+- 前置条件:`ROUTER_WALLET_PRIVATE_KEY`(普通用户)。
+- 步骤:
+  1. 以普通用户令牌 `GET /api/v1/admin/token/`。
+  2. 匿名 `GET /api/v1/admin/token/`。
+- 预期结果:普通用户 HTTP 200、`success=false`、`message` 含「权限不足」;匿名 HTTP 401。
+
+### RT-API-078 个人供应商(BYOK)独立解锁令牌创建
+- 优先级:P0
+- 类型:API
+- 状态:✅ 已实现 — products/router/tests/admin-token.spec.ts:331
+- 前置条件:`ROUTER_WALLET_PRIVATE_KEY`(普通用户)。
+- 步骤:
+  1. 创建一枚启用态个人供应商连接,携带**唯一合成模型名** `e2e-byok-model-<ts>`。
+  2. `GET /api/v1/public/user/models/available?provider=personal_provider`(仅隔离 BYOK 来源模型)。
+  3. `POST /api/v1/public/token/` 且 `models` 精确设为该合成模型。
+  4. `finally` 删除令牌与连接。
+- 预期结果:可用模型集(经 `MergePersonalProviderModelsIntoEntitlements`)含该合成模型;仅凭 BYOK 即可创建 `models` 限定为该模型的令牌(`success=true`)——证明可用模型的第二来源(个人供应商)与套餐/充值权益正交、可独立解锁令牌创建。合成模型名不与真实目录冲突,零选路爆炸半径。
+
+---
+
+## 十五、渠道账务采购快照(管理员)
+
+> 端点:`/api/v1/admin/channel/:id/billing/snapshots[/:snapshot_id]`(`AdminAuth`)。人工采购快照记录运营方对某渠道
+> 的采购/权益(`event_type` purchase/renewal/upgrade/…、若干 quota/balance 权益项与有效期)。信封 `{success, message, data}`,
+> HTTP 恒 200。**CREATE 仅回 `data:{channel_id}`(不含新快照 id)**,新 id 需从 LIST(`{items,total}`)回读;UPDATE/DELETE 回
+> `data:{channel_id, snapshot_id}`。缺失渠道透出**原始 gorm 报文 `record not found`(英文)**。爆炸半径:父渠道用 `status:2`
+> 停用态创建、快照与渠道均于 `finally` 硬删,快照为纯账务记账行、绝不触达真实选路或他渠道账本。`/admin/channel` 组鉴权边界
+> 已由 RT-API-066(admin-channels.spec)覆盖,此处不重复。需 `ROUTER_ADMIN_PRIVATE_KEY`。
+
+### RT-API-073 采购快照 CRUD 全程(创建→列表→更新→删除)
+- 优先级:P0
+- 类型:API
+- 状态:✅ 已实现 — products/router/tests/admin-billing-snapshots.spec.ts:94
+- 前置条件:`ROUTER_ADMIN_PRIVATE_KEY` 在部署 `bootstrap.root_wallet_address`。
+- 步骤:
+  1. 创建停用态(`status:2`)渠道。
+  2. `POST /admin/channel/:id/billing/snapshots`(最小合法请求:币种/实付/汇率/成本/权益名 + 一条 balance 权益项)。
+  3. `GET .../snapshots` 回读新快照 id。
+  4. `PUT .../snapshots/:snapshot_id`(改 `message`)。
+  5. `DELETE .../snapshots/:snapshot_id`。
+- 预期结果:创建 `success=true`、`data.channel_id` 匹配;列表命中该快照(`source_type==='manual'`)、`total` 为数;更新回 `data:{channel_id, snapshot_id}` 且回读 `message` 已改;删除回 `data:{channel_id, snapshot_id}` 且列表不再含该快照。
+
+### RT-API-074 采购快照请求校验与缺失渠道
+- 优先级:P1
+- 类型:API
+- 状态:✅ 已实现 — products/router/tests/admin-billing-snapshots.spec.ts:154
+- 前置条件:同 RT-073。
+- 步骤:对停用态渠道分别提交:空 `purchase_currency`、`purchase_amount=0`、空 `items`;再对不存在渠道提交合法请求。
+- 预期结果:分别返回 `success=false` 且 `message` 为「采购币种不能为空」/「实付金额必须大于 0」/「请至少填写一条权益项」;缺失渠道透出 `record not found`(或含「不存在」)。
+
+---
+
+## 十六、渠道告警中心(管理员)
+
+> 端点:`/api/v1/admin/channel/alerts`(分页 + `summary`)、`/alerts/acknowledge`、`/alerts/resolve`、
+> `/billing/alerts`(近期跨渠道)、`/:id/billing/alerts`(单渠道),均 `AdminAuth`。告警生命周期 active → acknowledged → resolved。
+> ack/resolve 为按 (alert_type, alert_key) 的**幂等 upsert**(无严格状态跃迁校验,唯一请求校验为「告警参数无效」)。爆炸半径:
+> 状态机用例始终用**合成唯一** `alert_key`(`e2e-alert-<ts>`)绑定停用态渠道,绝不 ack/resolve 真实运营告警;因无状态行删除端点,每跑留下一条绑定合成键+已删渠道的自洽状态行(无任何告警事件引用,惰性无害)。`/admin/channel` 组鉴权边界已由 RT-API-066 覆盖。需 `ROUTER_ADMIN_PRIVATE_KEY`。
+
+### RT-API-075 告警读取信息流受控契约
+- 优先级:P0
+- 类型:API
+- 状态:✅ 已实现 — products/router/tests/admin-channel-alerts.spec.ts:81
+- 前置条件:`ROUTER_ADMIN_PRIVATE_KEY` 在部署 `bootstrap.root_wallet_address`。
+- 步骤:
+  1. `GET /admin/channel/alerts?page=1&page_size=20`。
+  2. `GET /admin/channel/billing/alerts`。
+  3. 对停用态渠道 `GET /admin/channel/:id/billing/alerts`。
+- 预期结果:告警流 `success=true`、`data` 含 `items`(数组)/`total`(数)/`page=1`/`page_size=20`,`summary` 存在时含 `total`/`active_total`/`unacknowledged`;近期账务告警 `{items,total}`;新渠道单渠道账务告警为空页(`items=[]`、`total=0`)。
+
+### RT-API-076 告警确认→解决状态机(幂等 upsert)
+- 优先级:P0
+- 类型:API
+- 状态:⬜ 待实现(条件跳过)— products/router/tests/admin-channel-alerts.spec.ts:132(部署未迁移 `channel_alert_states` 表时返回「channel alert state table is not ready」,据实跳过;本部署即处此态)
+- 前置条件:部署已迁移 `channel_alert_states` 表。
+- 步骤:对停用态渠道 + 合成 `alert_key`:
+  1. `POST /admin/channel/alerts/acknowledge`。
+  2. 再次 acknowledge(验证幂等)。
+  3. `POST /admin/channel/alerts/resolve`。
+- 预期结果:acknowledge → `status==='acknowledged'`、`acknowledged_at>0`、`acknowledged_by` 非空、`last_operator_note` 回显;再次 acknowledge 仍成功且保持 acknowledged;resolve → `status==='resolved'`、`resolved_at>0`、`resolved_by` 非空、`acknowledged_at` 保留。
+
+### RT-API-077 告警确认/解决请求校验
+- 优先级:P1
+- 类型:API
+- 状态:✅ 已实现 — products/router/tests/admin-channel-alerts.spec.ts:185
+- 前置条件:`ROUTER_ADMIN_PRIVATE_KEY`。
+- 步骤:acknowledge 缺 `alert_key`;resolve 提交空 body。
+- 预期结果:两者均 `success=false`、`message==='告警参数无效'`(参数校验先于状态表就绪检查,故此用例不受表迁移影响)。

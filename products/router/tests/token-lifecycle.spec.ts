@@ -99,8 +99,11 @@ test('create an API token through the workspace, then delete it', async ({
       createdId = String(createBody.data?.id ?? '');
       expect(createdId).not.toBe('');
 
-      // The one-time key card (hardcoded zh title) confirms the create.
-      await expect(page.getByText('令牌已创建')).toBeVisible({ timeout: 15_000 });
+      // The one-time key card (title from token.created.title, i18n-driven → follows
+      // the app language, so match zh/en) confirms the create.
+      await expect(
+        page.getByRole('heading', { name: /令牌已创建|Token created/ }),
+      ).toBeVisible({ timeout: 15_000 });
       await recorder.step(page, '令牌已创建');
 
       // Back to the list → the new token row is present.

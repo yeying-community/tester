@@ -38,6 +38,31 @@ async function firstToken(baseURL: string): Promise<{ id?: string | number; name
   }
 }
 
+/**
+ * Mint a dedicated token via the user API (entitlement-gated: the account must have
+ * available models). Returns the trimmed id plus the owner ctx (kept open for
+ * cleanup), or null when the account cannot mint (payment boundary). Using a
+ * dedicated token keeps the edit test isolated from concurrent token specs that
+ * create/delete rows on the same shared account.
+ */
+async function mintOwnToken(
+  baseURL: string,
+  name: string,
+): Promise<{ id: string; ctx: Awaited<ReturnType<typeof apiContext>> } | null> {
+  const { token } = await acquireRouterToken(baseURL);
+  const ctx = await apiContext(baseURL, { Authorization: `Bearer ${token}` });
+  const res = (await (
+    await ctx.post('/api/v1/public/token/', {
+      data: { name, unlimited_quota: true, unlimited_request_count: true, expired_time: -1, models: '' },
+    })
+  ).json()) as { success?: boolean; data?: { id?: string | number } };
+  if (!res.success || res.data?.id == null) {
+    await ctx.dispose();
+    return null;
+  }
+  return { id: String(res.data.id).trim(), ctx };
+}
+
 // RT-UI-022 (P2)
 test('token row supports copy and enable/disable toggle', async ({ page, baseURL, recorder }) => {
   skipIfNoService();
@@ -83,36 +108,50 @@ test('token row supports copy and enable/disable toggle', async ({ page, baseURL
 test('the token edit page saves name changes', async ({ page, baseURL, recorder }) => {
   skipIfNoService();
   skipIfNoKey();
-  const existing = await firstToken(baseURL!);
+  // Mint a DEDICATED token to edit: the account is shared across token specs via
+  // ROUTER_WALLET_PRIVATE_KEY, so editing firstToken() races concurrent specs that
+  // delete rows (the edit page then re-renders/detaches mid-interaction).
+  const owned = await mintOwnToken(baseURL!, `e2e-uiedit-${Date.now().toString(36)}`);
   test.skip(
-    !existing?.id,
-    'account has no token to edit; minting one needs purchased models (payment boundary)',
+    owned === null,
+    'account cannot mint a token to edit (no available models — payment boundary)',
   );
+  const { id, ctx } = owned!;
 
-  await page.goto(baseURL!, { waitUntil: 'domcontentloaded' });
-  await seedWalletSession(page, baseURL!, envFor('router')['ROUTER_WALLET_PRIVATE_KEY']!);
-  await page.goto(`${baseURL}/workspace/token/${existing!.id}`, { waitUntil: 'domcontentloaded' });
+  try {
+    await page.goto(baseURL!, { waitUntil: 'domcontentloaded' });
+    await seedWalletSession(page, baseURL!, envFor('router')['ROUTER_WALLET_PRIVATE_KEY']!);
+    await page.goto(`${baseURL}/workspace/token/${id}`, { waitUntil: 'domcontentloaded' });
 
-  const nameInput = page.locator('input').first();
-  await expect(nameInput).toBeVisible({ timeout: 15_000 });
-  const original = existing!.name ?? (await nameInput.inputValue());
-  const newName = `e2e-ui-edit-${Date.now()}`;
-  await nameInput.fill(newName);
+    // The detail page (EditToken.jsx isDetailMode) opens read-only, split into
+    // sections, and loads the token async — loadToken + loadAvailableModels each
+    // re-render the basic section, so the edit button can detach mid-click. Wait for
+    // the name field to render, then retry the "enter edit mode" step as a unit until
+    // the field is actually editable.
+    const nameInput = page.getByPlaceholder(/请输入名称|Please enter name/);
+    await expect(nameInput).toBeVisible({ timeout: 15_000 });
+    await expect(async () => {
+      // token.buttons.edit (zh 编辑 / en Edit) switches the basic section into edit mode.
+      await page.getByRole('button', { name: /^编辑$|^Edit$/ }).first().click();
+      await expect(nameInput).toBeEditable({ timeout: 2_000 });
+    }).toPass({ timeout: 15_000 });
+    const newName = `e2e-ui-edit-${Date.now()}`;
+    await nameInput.fill(newName);
 
-  const [putRes] = await Promise.all([
-    page.waitForResponse(
-      r => r.url().includes('/api/v1/public/token/') && r.request().method() === 'PUT',
-      { timeout: 15_000 },
-    ),
-    page.getByRole('button', { name: /保存|提交|Save|Submit|确定|确认/ }).first().click(),
-  ]);
-  const putBody = (await putRes.json()) as { success?: boolean };
-  expect(putBody.success).toBe(true);
-  await recorder.step(page, '令牌编辑保存');
-
-  // Restore the original name to keep the run side-effect neutral.
-  const { token } = await acquireRouterToken(baseURL!);
-  const ctx = await apiContext(baseURL!, { Authorization: `Bearer ${token}` });
-  await ctx.put('/api/v1/public/token/', { data: { id: existing!.id, name: original, status: 1 } }).catch(() => {});
-  await ctx.dispose();
+    const [putRes] = await Promise.all([
+      page.waitForResponse(
+        r => r.url().includes('/api/v1/public/token/') && r.request().method() === 'PUT',
+        { timeout: 15_000 },
+      ),
+      // Save = token.edit.buttons.submit (zh 确认 / en Confirm).
+      page.getByRole('button', { name: /^确认$|^Confirm$/ }).first().click(),
+    ]);
+    const putBody = (await putRes.json()) as { success?: boolean };
+    expect(putBody.success).toBe(true);
+    await recorder.step(page, '令牌编辑保存');
+  } finally {
+    // Dedicated token — just remove it; no original state to restore.
+    await ctx.delete(`/api/v1/public/token/${id}/`).catch(() => {});
+    await ctx.dispose();
+  }
 });
