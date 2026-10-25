@@ -352,9 +352,9 @@
 - 优先级:P1
 - 类型:DATA
 - 状态:✅ 已实现 — products/marketplace/tests/data.spec.ts:307
-- 前置条件:index.json 已解析,可访问 `skills/chat/`
+- 前置条件:index.json 已解析,可访问 `skills/`
 - 步骤:
-  1. 对每条,从 `path`(如 `skills/chat/web-research/cn.json`)取父目录名
+  1. 对每条,从 `path`(如 `skills/web-research/cn.json`)取父目录名
   2. 断言父目录名 === `id`
 - 预期结果:一致(对应 build.mjs 的 `skill id must match parent folder`)
 
@@ -379,15 +379,16 @@
   2. 断言与 `tools/packages.json` 按 id 一一对应且版本一致
 - 预期结果:两侧一致,无孤儿工具条目
 
-### MP-DATA-037 codex 技能不进入 index / packages
+### MP-DATA-037 统一技能目录可识别且 Agent-only 技能不进入 Chat 清单
 - 优先级:P1
 - 类型:DATA
 - 状态:✅ 已实现 — products/marketplace/tests/data.spec.ts:347
-- 前置条件:`skills/codex/` 下存在 Codex 执行类技能(SKILL.md 结构)
+- 前置条件:`skills/` 下同时存在 Chat 技能、Agent Skill 或同时支持两种格式的 Skill
 - 步骤:
-  1. 收集 `skills/codex/` 子目录名(如 `community-project-skill`、`community-warehouse-skill`)
-  2. 断言它们不出现在 `index.json` 与 `packages.json`
-- 预期结果:Codex 技能仅用 SKILL.md 目录组织,绝不进入 Chat 加载的发布清单
+  1. 遍历 `skills/<skill-id>/`，断言每个目录至少包含 `cn.json`、`en.json` 或 `SKILL.md`
+  2. 收集只包含 `SKILL.md`、没有 Chat JSON 入口的 Agent-only Skill
+  3. 断言 Agent-only Skill 不出现在 `index.json` 与 `packages.json`
+- 预期结果:一级目录都具有明确入口；Agent-only Skill 不进入 Chat 发布清单，混合 Skill 可按 Chat JSON 正常发布
 
 ---
 
@@ -400,7 +401,7 @@
 - 前置条件:index.json 已解析,可访问仓库文件系统
 - 步骤:
   1. 对每条 `resolve(repoPath, entry.path)` 后 `existsSync`
-- 预期结果:每条 `path`(如 `skills/chat/reading-summary/en.json`)均指向实际存在的技能包文件;悬空引用判定失败
+- 预期结果:每条 `path`(如 `skills/reading-summary/en.json`)均指向实际存在的技能包文件;悬空引用判定失败
 
 ### MP-DATA-039 tools/index.path 指向真实存在的文件
 - 优先级:P1

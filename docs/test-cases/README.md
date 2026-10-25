@@ -52,6 +52,6 @@
 **Agent** — 钱包 SIWE 换会话 Cookie 主流程、错误签名拒绝、会话校验 401、受保护目录 401、
 Messenger 实例创建与生命周期。
 
-**Marketplace** — 全量覆盖(59/59)。技能包与 Tool Server 的完整 schema 校验(必填字段、kebab-case/semver、name/description localizedText、launch/instructions 的 oneOf、icon/permissions/release 枚举、additionalProperties=false),index↔packages 一致性与版本对齐、tools/index↔tools/packages 对齐、path/toolServers[].id 引用全部落到真实文件、(id,lang) 唯一、codex 技能不入索引、确定性排序、npx @yeying-community 本地源码存在,以及未设 BASE_URL 时的磁盘回退与非法/空/缺失输入的边界(临时 fixture,不改真实仓库)。纯文件校验,无需服务。未发现数据缺陷。
+**Marketplace** — 全量覆盖(59/59)。技能包与 Tool Server 的完整 schema 校验(必填字段、kebab-case/semver、name/description localizedText、launch/instructions 的 oneOf、icon/permissions/release 枚举、additionalProperties=false),index↔packages 一致性与版本对齐、tools/index↔tools/packages 对齐、path/toolServers[].id 引用全部落到真实文件、(id,lang) 唯一、统一 Skill 一级目录入口可识别、Agent-only Skill 不进入 Chat 清单、确定性排序、npx @yeying-community 本地源码存在,以及未设 BASE_URL 时的磁盘回退与非法/空/缺失输入的边界(临时 fixture,不改真实仓库)。纯文件校验,无需服务。未发现数据缺陷。
 
 **Books** — P2 数据校验已补齐(32/35):SUMMARY 结构/编号、死链与仓库内相对路径扫描、章节孤儿双向校验、跨文件与文内 #锚点解析及重复歧义、图片/资产孤儿与 alt、UTF-8/代码围栏成对/CRLF、总览↔单产品目录一致、"纯 SUMMARY 目录型仓库"构建契约。纯文件校验,无需服务。**发现 2 处真实缺陷(以 `test.fixme` 如实标记,未弱化断言、未修改产品仓库)**:① `agent/README.md:26` 的 SUMMARY 链接写成机器绝对路径且缺 `opensource/` 段 → 死链(应改相对 `./SUMMARY.md`);② `yeying/2A068D22-…​.png` 为无任何 markdown 引用的孤儿图片资产。剩余 3 条 ⬜ 即这两处缺陷对应用例(BK-DATA-009/012/023)。

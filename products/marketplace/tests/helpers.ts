@@ -124,7 +124,7 @@ export function unknownTopLevelKeys(obj: Record<string, any>, schema: any): stri
   return Object.keys(obj).filter((k) => !allowed.has(k));
 }
 
-/** Parent folder name of an index path, e.g. skills/chat/web-research/cn.json -> web-research. */
+/** Parent folder name of an index path, e.g. skills/web-research/cn.json -> web-research. */
 export function parentFolder(p: string): string {
   return basename(dirname(p));
 }

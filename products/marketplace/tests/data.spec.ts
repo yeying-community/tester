@@ -345,21 +345,26 @@ test(localizedTitle("【条目唯一性与一致性 / DATA】 MP-DATA-036 tools/
   }
 });
 
-test(localizedTitle("【条目唯一性与一致性 / DATA】 MP-DATA-037 codex 技能不进入 index / packages", "MP-DATA-037 codex skills never enter index / packages"), () => {
-  const codexDir = abs('skills/codex');
-  if (!existsSync(codexDir)) {
-    test.skip(true, 'skills/codex absent');
-    return;
-  }
-  const codexIds = readdirSync(codexDir, { withFileTypes: true })
+test(localizedTitle("【条目唯一性与一致性 / DATA】 MP-DATA-037 统一技能目录可识别且 Agent-only 技能不进入 Chat 清单", "MP-DATA-037 unified skill folders are recognized and agent-only skills stay out of Chat manifests"), () => {
+  const skillsDir = abs('skills');
+  const skillIds = readdirSync(skillsDir, { withFileTypes: true })
     .filter((d) => d.isDirectory())
     .map((d) => d.name);
-  expect(codexIds.length).toBeGreaterThan(0);
+  expect(skillIds.length).toBeGreaterThan(0);
+  const agentOnlyIds: string[] = [];
+  for (const skillId of skillIds) {
+    const skillDir = resolve(skillsDir, skillId);
+    const hasChatEntry = ['cn', 'en'].some((lang) => existsSync(resolve(skillDir, `${lang}.json`)));
+    const hasAgentEntry = existsSync(resolve(skillDir, 'SKILL.md'));
+    expect(hasChatEntry || hasAgentEntry, `unrecognized skill folder ${skillId}`).toBe(true);
+    if (hasAgentEntry && !hasChatEntry) agentOnlyIds.push(skillId);
+  }
+  expect(agentOnlyIds.length).toBeGreaterThan(0);
   const indexIds = new Set(readIndex().map((e) => e.id));
   const pkgIds = new Set(allSkillPackages().map(({ pkg }) => pkg.id));
-  for (const cid of codexIds) {
-    expect(indexIds.has(cid), `codex skill ${cid} leaked into index.json`).toBe(false);
-    expect(pkgIds.has(cid), `codex skill ${cid} leaked into packages.json`).toBe(false);
+  for (const skillId of agentOnlyIds) {
+    expect(indexIds.has(skillId), `agent-only skill ${skillId} leaked into index.json`).toBe(false);
+    expect(pkgIds.has(skillId), `agent-only skill ${skillId} leaked into packages.json`).toBe(false);
   }
 });
 
@@ -494,15 +499,15 @@ test(localizedTitle("【分类、标签与排序 / DATA】 MP-DATA-048 packages.
 });
 
 test(localizedTitle("【分类、标签与排序 / DATA】 MP-DATA-049 index 条目按 id 稳定排序", "MP-DATA-049 index entries follow the build.mjs deterministic order"), () => {
-  const chatDir = abs('skills/chat');
-  const folders = readdirSync(chatDir, { withFileTypes: true })
+  const skillsDir = abs('skills');
+  const folders = readdirSync(skillsDir, { withFileTypes: true })
     .filter((d) => d.isDirectory())
     .map((d) => d.name)
     .sort();
   const expected: string[] = [];
   for (const folder of folders) {
     for (const lang of ['cn', 'en']) {
-      if (existsSync(resolve(chatDir, folder, `${lang}.json`))) expected.push(`${lang}:${folder}`);
+      if (existsSync(resolve(skillsDir, folder, `${lang}.json`))) expected.push(`${lang}:${folder}`);
     }
   }
   const actual = readIndex().map((e) => `${e.lang}:${e.id}`);
