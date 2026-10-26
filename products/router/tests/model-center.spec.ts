@@ -259,6 +259,28 @@ async function installModelCenterFixtures(page: Page, role: number) {
   await page.route('**/api/v1/public/user/topup/balance/summary', (route) =>
     fulfill(route, { total_balance_amount: 100 }),
   );
+  await page.route('**/api/v1/public/user/topup/plans', (route) => fulfill(route, []));
+  await page.route('**/api/v1/public/user/topup/balance/lots*', (route) =>
+    fulfill(route, { items: [], total: 0 }),
+  );
+  await page.route('**/api/v1/public/user/quota/overview', (route) =>
+    fulfill(route, {
+      total_amount: 1_000_000,
+      used_amount: 250_000,
+      remaining_amount: 750_000,
+    }),
+  );
+  await page.route('**/api/v1/public/user/quota/cards*', (route) =>
+    fulfill(route, { items: [], total: 0 }),
+  );
+  await page.route('**/api/v1/public/user/spend/overview*', (route) =>
+    fulfill(route, { period_requests: 1_545 }),
+  );
+  await page.route('**/api/v1/public/token/*', (route) => fulfill(route, [{}, {}]));
+  await page.route('**/api/v1/public/user/dashboard*', (route) => fulfill(route, []));
+  await page.route('**/api/v1/public/billing/currencies', (route) =>
+    fulfill(route, { items: [], default_currency: 'USD' }),
+  );
   await page.route('**/api/v1/public/user/onboarding/progress', (route) =>
     fulfill(route, {
       has_token: true,
@@ -296,7 +318,12 @@ test(
       'aria-selected',
       'true',
     );
-    await expect(page.getByText('最近 5 小时 · 每格 5 分钟')).toBeVisible();
+    await expect(
+      page.getByText('固定展示过去 5 小时。每个格子代表 5 分钟观测窗口', {
+        exact: false,
+      }),
+    ).toBeVisible();
+    await expect(page.getByText('最近 5 小时 · 每格 5 分钟')).toHaveCount(0);
     await expect(page.getByText('无样本', { exact: true })).toBeVisible();
     await expect(page.locator('.workspace-model-card')).toHaveCount(2);
     await expect(
@@ -337,13 +364,13 @@ test(
 
 test(
   localizedTitle(
-    '【模型中心 / UI】 普通用户排行恢复 URL 状态并保护全站低样本数据',
-    'user ranking restores URL state and protects low-sample global usage',
+    '【模型中心 / UI】 使用排行固定展示全站偏好并保护低样本数据',
+    'model ranking is fixed to global preference and protects low-sample usage',
   ),
   async ({ page, baseURL, recorder }) => {
     skipIfNoService();
     await installModelCenterFixtures(page, 0);
-    const path = '/workspace/service/models?tab=ranking&period=last_30_days&q=gpt';
+    const path = '/workspace/service/models?tab=ranking&scope=me&period=last_30_days&q=gpt';
     await page.goto(`${baseURL}${path}`, { waitUntil: 'domcontentloaded' });
 
     await expect(page.getByRole('tab', { name: '使用排行' })).toHaveAttribute(
@@ -352,14 +379,15 @@ test(
     );
     await expect(page.locator('.workspace-models-search')).toHaveValue('gpt');
     await expect(page.locator('.workspace-model-ranking-period')).toContainText('近 30 天');
+    await expect(page.getByRole('heading', { level: 2, name: '全站模型偏好' })).toBeVisible();
+    await expect(page.getByRole('radio', { name: '我的使用' })).toHaveCount(0);
+    await expect(page.getByRole('radio', { name: '全站偏好' })).toHaveCount(0);
     await expect(page.locator('.workspace-model-ranking-row')).toHaveCount(1);
     await page.reload({ waitUntil: 'domcontentloaded' });
-    await expect(page).toHaveURL(new RegExp('tab=ranking.*period=last_30_days.*q=gpt'));
+    await expect(page).toHaveURL(new RegExp('tab=ranking.*scope=me.*period=last_30_days.*q=gpt'));
     await expect(page.locator('.workspace-models-search')).toHaveValue('gpt');
 
     await page.locator('.workspace-models-search').fill('');
-    await page.getByText('全站偏好', { exact: true }).click();
-    await expect(page).toHaveURL(/scope=global/);
     await expect(page.locator('.workspace-model-ranking-privacy-note')).toContainText(
       '至少 5 次调用且来自至少 2 位用户',
     );
@@ -368,14 +396,88 @@ test(
     await expect(suppressed).toContainText('样本不足');
     await expect(suppressed).not.toContainText('调用量');
     await expect(page.locator('.recharts-bar-rectangle')).toHaveCount(2);
-    await recorder.step(page, '模型中心 · 个人排行 / URL 恢复 / 全站隐私阈值');
+    await recorder.step(page, '模型中心 · 固定全站偏好 / URL 恢复 / 隐私阈值');
   },
 );
 
 test(
   localizedTitle(
-    '【模型中心 / UI】 管理员默认全站排行并显示运营字段与日志入口',
-    'admin defaults to global ranking and sees operational fields and log links',
+    '【我的 / UI】 历史额度下钻并将个人模型使用作为独立 Tab',
+    'quota history drills down from quota while personal model usage has its own tab',
+  ),
+  async ({ page, baseURL, recorder }) => {
+    skipIfNoService();
+    await installModelCenterFixtures(page, 0);
+
+    await page.goto(`${baseURL}/workspace/topup?tab=quota`, {
+      waitUntil: 'domcontentloaded',
+    });
+    await expect(page.getByRole('tab', { name: '额度' })).toHaveAttribute('aria-selected', 'true');
+    await expect(page.getByRole('tab', { name: '模型使用' })).toBeVisible();
+    await expect(page.getByRole('tab', { name: '历史额度' })).toHaveCount(0);
+    await page.getByRole('button', { name: '历史额度' }).click();
+    await expect(page).toHaveURL(/tab=history/);
+    await expect(page.getByRole('tab', { name: '额度' })).toHaveAttribute('aria-selected', 'true');
+
+    const path = '/workspace/topup?tab=model_usage&usage_period=last_30_days&usage_q=retired';
+    await page.goto(`${baseURL}${path}`, { waitUntil: 'domcontentloaded' });
+
+    await expect(page.getByRole('tab', { name: '模型使用' })).toHaveAttribute(
+      'aria-selected',
+      'true',
+    );
+    const usageSection = page.locator('.router-topup-model-usage');
+    await expect(
+      usageSection.getByRole('heading', { level: 2, name: '模型使用' }),
+    ).toBeVisible();
+    await expect(usageSection.locator('.workspace-models-search')).toHaveValue('retired');
+    await expect(usageSection.locator('.workspace-model-ranking-period')).toContainText('近 30 天');
+    await expect(usageSection.locator('.workspace-model-ranking-row')).toHaveCount(1);
+    await expect(usageSection).toContainText('retired-personal-model');
+    await expect(usageSection.getByRole('radio', { name: '我的使用' })).toHaveCount(0);
+    await expect(usageSection.getByRole('radio', { name: '全站偏好' })).toHaveCount(0);
+    await expect(usageSection.locator('.workspace-model-ranking-privacy-note')).toHaveCount(0);
+
+    await page.reload({ waitUntil: 'domcontentloaded' });
+    await expect(page).toHaveURL(
+      new RegExp('tab=model_usage.*usage_period=last_30_days.*usage_q=retired'),
+    );
+    await expect(usageSection.locator('.workspace-models-search')).toHaveValue('retired');
+
+    await page.setViewportSize({ width: 390, height: 844 });
+    expect(
+      await page.evaluate(() => {
+        const g = globalThis as unknown as {
+          document: { documentElement: { scrollWidth: number } };
+        };
+        return g.document.documentElement.scrollWidth;
+      }),
+    ).toBe(390);
+
+    await page.evaluate(() => localStorage.setItem('router.theme', 'dark'));
+    await page.reload({ waitUntil: 'domcontentloaded' });
+    await expect(page.locator('html')).toHaveAttribute('data-theme', 'dark');
+    const darkUsageColors = await usageSection.evaluate((section) => {
+      const heading = section.querySelector('.workspace-model-section-heading');
+      const description = section.querySelector('.workspace-model-section-description');
+      return {
+        heading: heading ? getComputedStyle(heading).color : '',
+        description: description ? getComputedStyle(description).color : '',
+      };
+    });
+    expect(darkUsageColors.heading).toBe('rgb(15, 23, 42)');
+    expect(darkUsageColors.description).toBe('rgb(71, 85, 105)');
+    await recorder.step(
+      page,
+      '我的 · 历史额度下钻 / 模型使用 Tab / URL 恢复 / 移动端 / 暗色可读性',
+    );
+  },
+);
+
+test(
+  localizedTitle(
+    '【模型中心 / UI】 管理员全站排行显示运营字段与日志入口',
+    'admin global ranking shows operational fields and log links',
   ),
   async ({ page, baseURL, recorder }) => {
     skipIfNoService();
@@ -384,7 +486,11 @@ test(
       waitUntil: 'domcontentloaded',
     });
 
-    await expect(page).toHaveURL(/tab=ranking.*scope=global/);
+    await expect(page).toHaveURL(/tab=ranking/);
+    await expect(page).not.toHaveURL(/scope=/);
+    await expect(page.getByRole('heading', { level: 2, name: '全站模型偏好' })).toBeVisible();
+    await expect(page.getByRole('radio', { name: '我的使用' })).toHaveCount(0);
+    await expect(page.getByRole('radio', { name: '全站偏好' })).toHaveCount(0);
     for (const heading of ['运营数据', '当前状态', '操作']) {
       await expect(page.getByRole('columnheader', { name: heading })).toBeVisible();
     }
@@ -395,11 +501,6 @@ test(
     await expect(firstRow).toContainText('覆盖渠道');
     await expect(firstRow.getByRole('button', { name: '查看日志' })).toBeVisible();
 
-    await page.getByText('我的使用', { exact: true }).click();
-    await expect(page).not.toHaveURL(/scope=global/);
-    await expect(page.getByRole('radio', { name: '我的使用' })).toBeChecked();
-
-    await page.getByText('全站偏好', { exact: true }).click();
     await page.setViewportSize({ width: 390, height: 844 });
     const layout = await page.evaluate(() => {
       const g = globalThis as unknown as {
@@ -424,6 +525,6 @@ test(
     expect(layout.scrollWidth).toBe(layout.viewport);
     expect(layout.periodTop).toBe(layout.refreshTop);
     await expect(firstRow.getByRole('button', { name: '查看日志' })).toBeVisible();
-    await recorder.step(page, '模型中心 · 管理员运营排行 / 个人切换 / 移动端');
+    await recorder.step(page, '模型中心 · 管理员全站运营排行 / 移动端');
   },
 );

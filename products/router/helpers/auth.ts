@@ -18,10 +18,48 @@ export interface RouterTokens {
   expiresAt: number;
 }
 
-export async function loginWithWallet(
-  baseURL: string,
-  privateKey: string,
-): Promise<RouterTokens> {
+// Challenge/verify is guarded by Router's per-IP critical rate limit. The test
+// suite uses one wallet for many independent cases, so share a still-valid JWT
+// and coalesce simultaneous acquisitions instead of re-authenticating every
+// test. The cache is process-local and naturally resets between test runs.
+const tokenCache = new Map<string, RouterTokens>();
+const tokenRequests = new Map<string, Promise<RouterTokens>>();
+
+function tokenCacheKey(baseURL: string, privateKey: string): string {
+  return `${baseURL.replace(/\/$/, '')}|${privateKey.toLowerCase()}`;
+}
+
+function cachedToken(key: string): RouterTokens | undefined {
+  const value = tokenCache.get(key);
+  // Leave a small renewal window so a long-running test never starts with a
+  // token that expires during its request sequence.
+  if (value && value.expiresAt > Math.floor(Date.now() / 1000) + 60) {
+    return value;
+  }
+  if (value) tokenCache.delete(key);
+  return undefined;
+}
+
+export async function loginWithWallet(baseURL: string, privateKey: string): Promise<RouterTokens> {
+  const cacheKey = tokenCacheKey(baseURL, privateKey);
+  const cached = cachedToken(cacheKey);
+  if (cached) return cached;
+
+  const pending = tokenRequests.get(cacheKey);
+  if (pending) return pending;
+
+  const requestPromise = loginWithWalletFresh(baseURL, privateKey);
+  tokenRequests.set(cacheKey, requestPromise);
+  try {
+    const tokens = await requestPromise;
+    tokenCache.set(cacheKey, tokens);
+    return tokens;
+  } finally {
+    tokenRequests.delete(cacheKey);
+  }
+}
+
+async function loginWithWalletFresh(baseURL: string, privateKey: string): Promise<RouterTokens> {
   const wallet = new Wallet(privateKey);
   const address = wallet.address.toLowerCase();
 
@@ -79,7 +117,7 @@ export async function loginWithWallet(
       if (!(vBody.message ?? '').includes('nonce')) {
         throw new Error(`verify returned null data: ${vText}`);
       }
-      await new Promise(r => setTimeout(r, 50 + Math.floor(Math.random() * 150)));
+      await new Promise((r) => setTimeout(r, 50 + Math.floor(Math.random() * 150)));
     }
     throw new Error(`verify kept failing on nonce race: ${lastErr}`);
   } finally {

@@ -20,56 +20,95 @@ function diskChapterFiles(): string[] {
 }
 
 // BK-DATA-014
-test(localizedTitle("【章节文件与孤儿检测 / DATA】 BK-DATA-014 agent 章节文件无孤儿(均被 SUMMARY 引用)", "BK-DATA-014 no orphan chapter files (every chapter is referenced by SUMMARY)"), () => {
-  const referenced = new Set(summaryChapterFiles());
-  const orphans = diskChapterFiles().filter((f) => !referenced.has(f));
-  expect(orphans).toEqual([]);
-});
+test(
+  localizedTitle(
+    '【章节文件与孤儿检测 / DATA】 BK-DATA-014 agent 章节文件无孤儿(均被 SUMMARY 引用)',
+    'BK-DATA-014 no orphan chapter files (every chapter is referenced by SUMMARY)',
+  ),
+  () => {
+    const referenced = new Set(summaryChapterFiles());
+    const orphans = diskChapterFiles().filter((f) => !referenced.has(f));
+    expect(orphans).toEqual([]);
+  },
+);
 
 // BK-DATA-015
-test(localizedTitle("【章节文件与孤儿检测 / DATA】 BK-DATA-015 SUMMARY 引用的章节文件都真实存在(反向校验)", "BK-DATA-015 every SUMMARY-referenced chapter exists on disk (reverse check)"), () => {
-  const onDisk = new Set(diskChapterFiles());
-  const dangling = summaryChapterFiles().filter((f) => !onDisk.has(f));
-  expect(dangling).toEqual([]);
-  // and the two sets are identical — no more, no less
-  expect(new Set(summaryChapterFiles())).toEqual(onDisk);
-});
+test(
+  localizedTitle(
+    '【章节文件与孤儿检测 / DATA】 BK-DATA-015 SUMMARY 引用的章节文件都真实存在(反向校验)',
+    'BK-DATA-015 every SUMMARY-referenced chapter exists on disk (reverse check)',
+  ),
+  () => {
+    const onDisk = new Set(diskChapterFiles());
+    const dangling = summaryChapterFiles().filter((f) => !onDisk.has(f));
+    expect(dangling).toEqual([]);
+    // and the two sets are identical — no more, no less
+    expect(new Set(summaryChapterFiles())).toEqual(onDisk);
+  },
+);
 
 // BK-DATA-016
-test(localizedTitle("【章节文件与孤儿检测 / DATA】 BK-DATA-016 每个章节文件非空且含标题", "BK-DATA-016 every chapter file is non-empty and has a heading"), () => {
-  const emptyOrTitleless: string[] = [];
-  for (const f of diskChapterFiles()) {
-    const text = readText(`agent/chapters/${f}`);
-    if (text.trim().length === 0) emptyOrTitleless.push(`${f} (empty)`);
-    else if (!/^\s{0,3}#{1,2}\s+\S/m.test(text)) emptyOrTitleless.push(`${f} (no heading)`);
-  }
-  expect(emptyOrTitleless).toEqual([]);
-});
+test(
+  localizedTitle(
+    '【章节文件与孤儿检测 / DATA】 BK-DATA-016 每个章节文件非空且含标题',
+    'BK-DATA-016 every chapter file is non-empty and has a heading',
+  ),
+  () => {
+    const emptyOrTitleless: string[] = [];
+    for (const f of diskChapterFiles()) {
+      const text = readText(`agent/chapters/${f}`);
+      if (text.trim().length === 0) emptyOrTitleless.push(`${f} (empty)`);
+      else if (!/^\s{0,3}#{1,2}\s+\S/m.test(text)) emptyOrTitleless.push(`${f} (no heading)`);
+    }
+    expect(emptyOrTitleless).toEqual([]);
+  },
+);
 
 // BK-DATA-017
-test(localizedTitle("【章节文件与孤儿检测 / DATA】 BK-DATA-017 章节文件名编号与 SUMMARY 顺序对应", "BK-DATA-017 chapter file numbering matches SUMMARY order"), () => {
-  const summaryNums = summaryChapterFiles()
-    .map((f) => /^(\d+)-/.exec(f))
-    .filter((m): m is RegExpExecArray => m != null)
-    .map((m) => Number(m[1]));
-  // ascending in SUMMARY order, no swapped titles/files
-  for (let i = 1; i < summaryNums.length; i++) {
-    expect(summaryNums[i]).toBeGreaterThan(summaryNums[i - 1]);
-  }
-  // numbered SUMMARY chapters == numbered disk chapters (same set)
-  const diskNums = diskChapterFiles()
-    .map((f) => /^(\d+)-/.exec(f))
-    .filter((m): m is RegExpExecArray => m != null)
-    .map((m) => Number(m[1]));
-  expect(new Set(summaryNums)).toEqual(new Set(diskNums));
-});
+test(
+  localizedTitle(
+    '【章节文件与孤儿检测 / DATA】 BK-DATA-017 章节文件名编号与 SUMMARY 顺序对应',
+    'BK-DATA-017 chapter file numbering matches SUMMARY order',
+  ),
+  () => {
+    const summaryNums = summaryChapterFiles()
+      .map((f) => /^(\d+)-/.exec(f))
+      .filter((m): m is RegExpExecArray => m != null)
+      .map((m) => Number(m[1]));
+    // ascending in SUMMARY order, no swapped titles/files
+    for (let i = 1; i < summaryNums.length; i++) {
+      expect(summaryNums[i]).toBeGreaterThan(summaryNums[i - 1]);
+    }
+    // numbered SUMMARY chapters == numbered disk chapters (same set)
+    const diskNums = diskChapterFiles()
+      .map((f) => /^(\d+)-/.exec(f))
+      .filter((m): m is RegExpExecArray => m != null)
+      .map((m) => Number(m[1]));
+    expect(new Set(summaryNums)).toEqual(new Set(diskNums));
+  },
+);
 
 // BK-DATA-018
-test(localizedTitle("【章节文件与孤儿检测 / DATA】 BK-DATA-018 yeying 单产品说明文件齐全且被总览引用", "BK-DATA-018 yeying single-product files are complete and referenced by overview"), () => {
-  const dir = 'yeying/社区/产品/单产品';
-  const files = readdirSync(abs(dir)).filter((f) => f.endsWith('.md'));
-  expect(files.length).toBe(8);
-  const overview = readText('yeying/社区文档总览.md');
-  const orphans = files.filter((f) => !overview.includes(`单产品/${f}`));
-  expect(orphans).toEqual([]);
-});
+test(
+  localizedTitle(
+    '【章节文件与孤儿检测 / DATA】 BK-DATA-018 yeying 单产品说明文件齐全且被总览引用',
+    'BK-DATA-018 yeying single-product files are complete and referenced by overview',
+  ),
+  () => {
+    const dir = 'yeying/夜莺社区/产品';
+    const excluded = new Set(['产品组合', '公共能力']);
+    const productDirs = readdirSync(abs(dir), { withFileTypes: true })
+      .filter((entry) => entry.isDirectory() && !excluded.has(entry.name))
+      .map((entry) => entry.name);
+    expect(productDirs.length).toBe(8);
+    const overview = readText('yeying/社区文档总览.md');
+    const productDocs = productDirs.flatMap((productDir) =>
+      readdirSync(abs(`${dir}/${productDir}`))
+        .filter((file) => file.endsWith('产品说明.md'))
+        .map((file) => `${productDir}/${file}`),
+    );
+    expect(productDocs.length).toBe(8);
+    const orphans = productDocs.filter((rel) => !overview.includes(`夜莺社区/产品/${rel}`));
+    expect(orphans).toEqual([]);
+  },
+);
