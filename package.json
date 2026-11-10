@@ -1,6 +1,6 @@
 {
   "name": "yeying-tester",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "private": true,
   "type": "module",
   "description": "End-to-end Playwright + Chromium test suite for the YeYing community products (warehouse, node, router, chat, social, project, knowledge, marketplace, books, orchestrator, wallet).",
