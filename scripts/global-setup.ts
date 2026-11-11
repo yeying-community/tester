@@ -5,7 +5,7 @@
  * waiting for first-paint. Each warm-up is a single GET that forces Vite
  * to compile + cache the entry + chunks.
  *
- * Runs once per `pnpm test` invocation. Safe to run when a service is
+ * Runs once per `npm test` invocation. Safe to run when a service is
  * down (the fetch fails with ECONNREFUSED and we log + skip).
  */
 import { baseURLFor } from '../shared/env';

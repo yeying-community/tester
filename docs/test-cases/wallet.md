@@ -21,7 +21,7 @@
 | 十、云端密钥托管与恢复   | 12     | 12     | 0      |
 | **合计**                 | **69** | **69** | **0**  |
 
-> 文档与基线:wallet 云端密钥托管的可重复验收基线见钱包仓库 `docs/钱包测试/密钥托管验收标准.md`(CUST-001..072)。本节 11 条 CUST-001..071 用例覆盖离线配置、启停、密文和恢复校验；新增 CUST-073 通过 stub Node 授权与托管服务覆盖新设备 PKCE 恢复 UI、原 DID 恢复及身份登录签名。该用例验证 Wallet 客户端全链路，不替代真实 Node/Passkey 联调；CUST-010/020..023、CUST-031/032 实际服务联调、UCAN 权限边界 CUST-060..062 和远端删除 CUST-072 仍待真实 Node/托管服务环境。
+> 规格与基线:Wallet 登录交互验收见 `products/wallet/LOGIN_ACCEPTANCE.md`，云端密钥托管验收见 `products/wallet/CUSTODY_ACCEPTANCE.md`（源自 Wallet 仓库的验收标准，CUST-001..072）。本节 11 条 CUST-001..071 用例覆盖离线配置、启停、密文和恢复校验；新增 CUST-073 通过 stub Node 授权与托管服务覆盖新设备 PKCE 恢复 UI、原 DID 恢复及身份登录签名。该用例验证 Wallet 客户端全链路，不替代真实 Node/Passkey 联调；CUST-010/020..023、CUST-031/032 实际服务联调、UCAN 权限边界 CUST-060..062 和远端删除 CUST-072 仍待真实 Node/托管服务环境。
 
 > 编号说明:`WL-UI-*` 为 popup 内交互;`WL-DAPP-*` 为经 `window.ethereum` / 审批窗的 dApp 交互;`WL-E2E-*` 为跨真实链/网络的端到端流程。
 > 通用前置(除特别说明外均适用):已通过 `WALLET_EXTENSION_PATH` 指向钱包源码目录;用 `loadWalletContext()` 启动带扩展的持久化 Chromium;`stubPublicEndpoints` 屏蔽 YeYing 公共端点以保证用例可离线运行。
@@ -688,7 +688,7 @@
 
 ## 十、云端密钥托管与恢复
 
-> 对应钱包仓库验收基线 `docs/钱包测试/密钥托管验收标准.md`。CUST-001..071 的 11 条用例通过 `helpers/custody.ts:stubCustody` 经 `context.route` 拦截托管服务，托管密文由扩展自己的 `encryptObject` 生成；恢复读取完整性通过 `sendSw` 驱动 service worker。CUST-073 额外覆盖导出加密托管、Node 恢复授权/PKCE、记录选择、解密恢复原 DID，再由真实注入 Provider 完成身份登录并本地验证 DID 文档和 Presentation 的 Ed25519 签名。Node 与托管服务均为可验证请求体和 PKCE 的 stub，不需要外部密钥或真实 Passkey。
+> 详细验收步骤见 `products/wallet/CUSTODY_ACCEPTANCE.md`。CUST-001..071 的 11 条用例通过 `helpers/custody.ts:stubCustody` 经 `context.route` 拦截托管服务，托管密文由扩展自己的 `encryptObject` 生成；恢复读取完整性通过 `sendSw` 驱动 service worker。CUST-073 额外覆盖导出加密托管、Node 恢复授权/PKCE、记录选择、解密恢复原 DID，再由真实注入 Provider 完成身份登录并本地验证 DID 文档和 Presentation 的 Ed25519 签名。Node 与托管服务均为可验证请求体和 PKCE 的 stub，不需要外部密钥或真实 Passkey。
 
 ### CUST-001 默认配置
 

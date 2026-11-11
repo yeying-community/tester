@@ -39,15 +39,15 @@ tester/
 ## Prerequisites
 
 - Node.js ≥ 24.18 (a `.nvmrc` is provided)
-- pnpm ≥ 9
-- Playwright browsers (`pnpm browsers:install`)
+- npm (bundled with Node.js)
+- Playwright browsers (`npm run browsers:install`)
 - Each product running on the documented ports
 
 ## First-time setup
 
 ```bash
-pnpm install
-pnpm browsers:install
+npm install --package-lock=false
+npm run browsers:install
 cp .env.template .env.local   # tweak BASE_URL / path values to match your local setup
 ```
 
@@ -65,10 +65,10 @@ Only one file is ever loaded — it's a selection model, not layering. Compose
 the environment as an inline prefix on any existing script; no `--` needed:
 
 ```bash
-pnpm test:wallet                  # default → .env.local
-TEST_ENV=test pnpm test:wallet    # → .env.test
-TEST_ENV=prod pnpm test:wallet    # → .env.prod
-TEST_ENV=test pnpm test:chat      # works for every product
+npm run test:wallet                  # default → .env.local
+TEST_ENV=test npm run test:wallet    # → .env.test
+TEST_ENV=prod npm run test:wallet    # → .env.prod
+TEST_ENV=test npm run test:chat      # works for every product
 ```
 
 (`npm run test:wallet` / `TEST_ENV=test npx playwright test --project=wallet`
@@ -79,15 +79,15 @@ gitignored.
 
 | Command                     | What it does                                      |
 | --------------------------- | ------------------------------------------------- |
-| `pnpm test`                 | run every project's tests                         |
-| `pnpm test:<product>`       | run a single product (e.g. `pnpm test:warehouse`) |
-| `pnpm list`                 | enumerate every test without executing            |
-| `pnpm env:check`            | verify each `*_BASE_URL` is reachable             |
-| `pnpm env:list`             | print per-product env-var matrix                  |
-| `pnpm typecheck`            | `tsc -b` across every project                     |
-| `pnpm lint` / `pnpm format` | eslint / prettier                                 |
-| `pnpm report`               | open the last HTML report                         |
-| `pnpm clean`                | remove reports, results, tsbuildinfo              |
+| `npm test`                         | run every project's tests                         |
+| `npm run test:<product>`           | run a single product (e.g. `npm run test:warehouse`) |
+| `npm run list`                     | enumerate every test without executing            |
+| `npm run env:check`                | verify each `*_BASE_URL` is reachable             |
+| `npm run env:list`                 | print per-product env-var matrix                  |
+| `npm run typecheck`                | `tsc -b` across every project                     |
+| `npm run lint` / `npm run format`  | eslint / prettier                                 |
+| `npm run report`                   | open the last HTML report                         |
+| `npm run clean`                    | remove reports, results, tsbuildinfo              |
 
 > Prefix any of the above with `TEST_ENV=local|test|prod` to pick the config
 > file — see [Environment selection](#environment-selection-local--test--prod).
@@ -97,15 +97,15 @@ gitignored.
 The framework is decoupled from the products. You can verify the harness with
 three steps that do not require any product running:
 
-1. `pnpm install`
-2. `pnpm exec playwright install chromium`
-3. `pnpm list` — you should see every project's tests enumerated.
+1. `npm install --package-lock=false`
+2. `npx playwright install chromium`
+3. `npm run list` — you should see every project's tests enumerated.
 
 For a smoke run, start a Python static server:
 
 ```bash
 python3 -m http.server 5173 --directory /tmp/stub &
-WAREHOUSE_BASE_URL=http://localhost:5173 pnpm test --project=warehouse
+WAREHOUSE_BASE_URL=http://localhost:5173 npm test -- --project=warehouse
 ```
 
 The first `smoke` spec in each product only asserts a 2xx response, so it will

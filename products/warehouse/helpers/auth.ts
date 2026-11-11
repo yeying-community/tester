@@ -52,7 +52,7 @@ export async function loginWithPassword(baseURL: string): Promise<WarehouseToken
 
 /**
  * Use a pre-issued JWT (cached or env-injected). Useful when a developer
- * already has a long-lived token from `pnpm env:check`'s `get-token` helper.
+ * already has a long-lived token from `npm run env:check`'s `get-token` helper.
  */
 export function loginWithCachedToken(token: string): WarehouseTokens {
   return {

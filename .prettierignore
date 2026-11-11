@@ -4,5 +4,4 @@ test-results/
 *.tsbuildinfo
 dist/
 coverage/
-pnpm-lock.yaml
 junit-*.xml

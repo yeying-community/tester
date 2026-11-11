@@ -5,8 +5,7 @@
   "type": "module",
   "description": "End-to-end Playwright + Chromium test suite for the YeYing community products (warehouse, node, router, chat, social, project, knowledge, marketplace, books, orchestrator, wallet).",
   "engines": {
-    "node": ">=24.18.0",
-    "pnpm": ">=9"
+    "node": ">=24.18.0"
   },
   "scripts": {
     "test": "playwright test",
@@ -49,6 +48,5 @@
     "tsx": "^4.19.2",
     "typescript": "^5.7.2",
     "zod": "^3.24.1"
-  },
-  "packageManager": "pnpm@9.15.0"
+  }
 }

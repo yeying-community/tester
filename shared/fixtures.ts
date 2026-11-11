@@ -16,7 +16,7 @@ export interface ProductFixtures {
   /**
    * Opt-in recorder for user-manual generation. Specs that don't call
    * `recorder.step(...)` produce no artifacts. Render with
-   * `pnpm manual:build`.
+   * `npm run manual:build`.
    */
   recorder: Recorder;
 }

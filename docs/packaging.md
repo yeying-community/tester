@@ -4,13 +4,13 @@ Tester 作为一个 `service` 单元交付：包内 Playwright 运行器、报�
 
 ## 构建接口
 
-构建要求 Linux x86_64、Python 3.10+、Node.js >=24.18 和 pnpm 9.15.0：
+构建要求 Linux x86_64、Python 3.10+、Node.js >=24.18 和 npm：
 
 ```bash
 scripts/package.sh --ref "$RELEASE_COMMIT" --source-commit "$MAIN_COMMIT" --version 0.1.2 --output-dir "$EMPTY_OUTPUT"
 ```
 
-从指定已提交版本提取临时源码，按 pnpm 锁文件安装依赖，下载对应 Chromium，输出版本化 tar.gz 和 release-manifest.json。包中带 node_modules 与浏览器，不需要运行机的开发缓存；Node、Python、Chromium 系统库，以及原测试执行脚本使用的 Bash/coreutils、flock、Xvfb 和 bubblewrap 由部署环境准备。构建不会 sudo、fetch、切换调用者分支、打 tag、推送、上传或部署。
+从指定已提交版本提取临时源码，使用 npm 安装依赖且不生成 package-lock.json，下载对应 Chromium，输出版本化 tar.gz 和 release-manifest.json。仓库按项目约定不保留依赖锁文件，因此依赖版本按 package.json 的 semver 范围解析。包中带 node_modules 与浏览器，不需要运行机的开发缓存；Node、Python、Chromium 系统库，以及原测试执行脚本使用的 Bash/coreutils、flock、Xvfb 和 bubblewrap 由部署环境准备。构建不会 sudo、fetch、切换调用者分支、打 tag、推送、上传或部署。
 
 package-api.json 声明四个统一参数。构建输入的 tag commit 与 main source commit 分开记录；归档名与清单身份采用 main source commit。输出目录必须为空，不覆盖已有不同字节的制品。可用 TESTER_BUILD_BROWSER_CACHE 指定构建缓存；安装器确认对应浏览器版本后完整复制入包，运行时仍不依赖该缓存。
 

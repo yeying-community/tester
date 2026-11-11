@@ -2,7 +2,7 @@
 /**
  * Print a summary of all configured products and the env vars each one expects.
  *
- * Usage: pnpm env:list
+ * Usage: npm run env:list
  */
 import { PRODUCT_NAMES } from '../shared/types';
 import { baseURLFor, baseURLKey } from '../shared/env';
@@ -40,7 +40,7 @@ function main() {
   // eslint-disable-next-line no-console
   console.log('└─────────────┴───────────────────────┴─────────────┘');
   // eslint-disable-next-line no-console
-  console.log('\nRun `pnpm env:check` to verify reachability.');
+  console.log('\nRun `npm run env:check` to verify reachability.');
 }
 
 main();

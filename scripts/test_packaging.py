@@ -41,6 +41,22 @@ class PackageContractTests(unittest.TestCase):
         for name in ("config/runtime.json.template", ".env.template", "products/router/tests/smoke.spec.ts"):
             self.assertTrue(build.publishable(Path(name)))
 
+    def test_release_dependencies_use_npm_without_a_lockfile(self):
+        build = module("package-release")
+        self.assertIn("package.json", build.FILES)
+        self.assertFalse(any("lock" in name.lower() for name in build.FILES))
+        manifest = json.loads((ROOT / "package.json").read_text())
+        self.assertNotIn("packageManager", manifest)
+        self.assertEqual(manifest.get("engines"), {"node": ">=24.18.0"})
+        with patch.object(build.subprocess, "check_output", return_value="11.0.0\n") as version:
+            with patch.object(build, "run") as run:
+                result = build.install_dependencies(Path("/tmp/tester-checkout"), {"CI": "1"})
+        self.assertEqual(result, "11.0.0")
+        version.assert_called_once_with(["npm", "--version"], text=True)
+        run.assert_called_once_with(
+            ["npm", "install", "--package-lock=false", "--include=dev"],
+            cwd=Path("/tmp/tester-checkout"), env={"CI": "1"})
+
     def test_invalid_release_version_is_rejected_before_building(self):
         proc = subprocess.run(["bash", str(ROOT / "scripts/package.sh"), "--ref", "HEAD",
                                "--source-commit", "0" * 40, "--version", "../../invalid", "--output-dir", "/invalid"],

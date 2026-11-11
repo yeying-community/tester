@@ -10,7 +10,7 @@
  *
  * Annotated with `recorder.step(...)` calls — opt-in to user-manual
  * generation. Each call captures a full-page screenshot of the popup
- * state at that point; `pnpm manual:build` renders them into Markdown.
+ * state at that point; `npm run manual:build` renders them into Markdown.
  */
 import { localizedTitle } from '../../../shared/title';
 import { test, expect } from '../fixtures';

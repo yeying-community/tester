@@ -13,7 +13,7 @@
  *     ...
  *     steps.json
  *
- * Render with `pnpm manual:build` (scripts/build-manual.ts).
+ * Render with `npm run manual:build` (scripts/build-manual.ts).
  *
  * Tests that don't call `recorder.step` produce no artifacts — opt-in
  * by design.

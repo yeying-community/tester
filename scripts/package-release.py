@@ -14,12 +14,19 @@ import tempfile
 
 ROOT = Path(__file__).resolve().parents[1]
 SEMVER = r"(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)"
-FILES = ("package.json", "pnpm-lock.yaml", "pnpm-workspace.yaml", ".nvmrc", ".env.template",
+FILES = ("package.json", ".nvmrc", ".env.template",
          "LICENSE", "README.md", "playwright.config.ts", "playwright.safe.config.ts", "tsconfig.json")
 DIRS = ("products", "shared", "scripts", "config", "docs")
 
 def run(args, **kwargs):
     return subprocess.run(args, check=True, **kwargs)
+
+def install_dependencies(checkout, env):
+    npm_version = subprocess.check_output(["npm", "--version"], text=True).strip()
+    # Lockfiles are intentionally not committed for this project. Avoid
+    # creating an untracked package-lock in the isolated release checkout.
+    run(["npm", "install", "--package-lock=false", "--include=dev"], cwd=checkout, env=env)
+    return npm_version
 
 def git(*args):
     return subprocess.check_output(["git", "-C", str(ROOT), *args], text=True).strip()
@@ -82,12 +89,8 @@ def build(args):
         major, minor, *_ = map(int, node_version.split("."))
         if (major, minor) < (24, 18):
             raise ValueError("Node.js >=24.18 is required")
-        pnpm_version = subprocess.check_output(["pnpm", "--version"], text=True).strip()
-        if pnpm_version != "9.15.0":
-            raise ValueError("build requires packageManager pnpm@9.15.0")
-        # A hoisted tree avoids dependencies pointing back into a build-machine pnpm store.
         env = dict(os.environ, PLAYWRIGHT_SKIP_BROWSER_DOWNLOAD="1")
-        run(["pnpm", "install", "--frozen-lockfile", "--config.node-linker=hoisted"], cwd=checkout, env=env)
+        npm_version = install_dependencies(checkout, env)
         browsers = checkout / "browsers"
         cache = Path(os.environ.get("TESTER_BUILD_BROWSER_CACHE", browsers)).absolute()
         env["PLAYWRIGHT_BROWSERS_PATH"] = str(cache)
@@ -104,7 +107,7 @@ def build(args):
         (staged / "release.json").write_text(json.dumps({
             "unit_id": "tester", "version": unit_version, "source_commit": source,
             "release_commit": ref, "platform": "linux-x86_64",
-            "node": node_version, "pnpm": pnpm_version,
+            "node": node_version, "npm": npm_version,
         }, indent=2) + "\n")
         # Resolve links only when they stay in this release, preventing external build paths.
         for path in list(staged.rglob("*")):
@@ -150,8 +153,8 @@ def main():
     args = parser.parse_args()
     try:
         build(args)
-    except (ValueError, OSError, KeyError, subprocess.SubprocessError, tarfile.TarError):
-        print("Tester packaging failed; inspect build output and prerequisites.", file=sys.stderr)
+    except (ValueError, OSError, KeyError, subprocess.SubprocessError, tarfile.TarError) as error:
+        print(f"Tester packaging failed: {error}", file=sys.stderr)
         return 1
     return 0
 

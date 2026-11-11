@@ -6,7 +6,7 @@ import { baseURLFor } from '../../shared/env';
  *
  * Root `playwright.config.ts` already declares a project named "orchestrator" with the
  * right testDir and baseURL. This file is what gets loaded when you run
- * `pnpm test --config=products/orchestrator/playwright.config.ts` or when you target
+ * `npm test -- --config=products/orchestrator/playwright.config.ts` or when you target
  * just this product through `--project=orchestrator`.
  *
  * It only differs from the root by setting an explicit `metadata.product` tag

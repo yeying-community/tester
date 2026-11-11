@@ -3,8 +3,8 @@
  * Verify that every product's base URL is reachable.
  *
  * Usage:
- *   pnpm env:check                  # check all products
- *   pnpm env:check -- --product=warehouse   # check one product
+ *   npm run env:check                  # check all products
+ *   npm run env:check -- --product=warehouse   # check one product
  *
  * Exit codes:
  *   0 = all configured URLs responded

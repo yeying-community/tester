@@ -7,7 +7,7 @@
  *   manual/<product>/<spec>/README.md     — per-spec manual section
  *   manual/INDEX.md                       — aggregated table of contents
  *
- * Run: `pnpm manual:build` (or `node --experimental-strip-types scripts/build-manual.ts`)
+ * Run: `npm run manual:build` (or `node --experimental-strip-types scripts/build-manual.ts`)
  */
 import { readFile, readdir, writeFile, stat } from 'node:fs/promises';
 import { join } from 'node:path';
@@ -110,7 +110,7 @@ function renderIndex(byProduct: Map<string, Array<{ dir: string; rec: SpecRecord
   lines.push('# YeYing Tester — User Manuals');
   lines.push('');
   lines.push('Generated from `manual/<product>/<spec>/steps.json` after each test run.');
-  lines.push('Re-run with `pnpm manual:build`.');
+  lines.push('Re-run with `npm run manual:build`.');
   lines.push('');
   for (const [product, specs] of byProduct) {
     lines.push(`## ${product}`);

@@ -6,7 +6,7 @@ Original logs and JUnit data remain outside the public report directory.
 
 ## Requirements
 
-Use a Linux host with the repository's Node.js and pnpm dependencies installed,
+Use a Linux host with the repository's Node.js and npm dependencies installed,
 Python 3.10+, GNU `timeout`, `flock`, Xvfb, and Bubblewrap (`bwrap`). Configure
 `.env.local` as described in the main README. The runner uses
 `playwright.safe.config.ts`, one worker, and a browser environment that hides

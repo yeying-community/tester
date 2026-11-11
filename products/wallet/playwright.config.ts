@@ -1,4 +1,6 @@
 import { defineConfig, devices } from '@playwright/test';
+import { dirname, resolve } from 'node:path';
+import { fileURLToPath } from 'node:url';
 
 /**
  * Per-product Playwright overrides for the `wallet` product.
@@ -6,18 +8,19 @@ import { defineConfig, devices } from '@playwright/test';
  * The wallet is a Chromium MV3 extension loaded via `--load-extension`.
  * Root `playwright.config.ts` already declares a project named "wallet"
  * with the right launch flags; this file is what gets loaded when you run
- * `pnpm test --config=products/wallet/playwright.config.ts` or when you
+ * `npm test -- --config=products/wallet/playwright.config.ts` or when you
  * target just this product through `--project=wallet`.
  *
  * It only differs from the root by setting an explicit `metadata.product`
  * tag that specs can read.
  */
 const HEADED = process.env.PWHEADLESS === '0';
+const productDir = dirname(fileURLToPath(import.meta.url));
 const walletExtensionPath =
   process.env['WALLET_EXTENSION_PATH']?.trim() || process.env['WALLET_REPO_PATH']?.trim() || '';
 
 export default defineConfig({
-  testDir: __dirname + '/tests',
+  testDir: resolve(productDir, 'tests'),
   testMatch: /.*\.spec\.ts$/,
   outputDir: 'results/wallet',
   timeout: 60_000,
