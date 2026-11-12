@@ -21,6 +21,7 @@ export interface PublicShare {
   token: string;
   name: string;
   path: string;
+  isDir: boolean;
   mode: string;
   url: string;
   viewCount: number;
